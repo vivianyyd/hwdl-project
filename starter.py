@@ -1,9 +1,8 @@
 import accelforge as af
 
 spec = af.Spec.from_yaml(
-    af.examples.arches.simple,
-    af.examples.workloads.matmuls,
-    af.examples.mappings.unfused_matmuls_to_simple,
+    "arch.yaml",
+    "workload.yaml",
     jinja_parse_data={
         "N_EINSUMS": 2,
         "M": 64,
@@ -13,6 +12,8 @@ spec = af.Spec.from_yaml(
     }
 )
 
-print(spec.arch)
-print(spec.mapping)
-print(spec.workload)
+# print(spec.arch)
+# print(spec.workload)
+
+result = spec.map_workload_to_arch()
+print(result)
