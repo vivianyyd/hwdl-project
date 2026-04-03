@@ -2,7 +2,7 @@ import accelforge as af
 
 spec = af.Spec.from_yaml(
     "arch.yaml",
-    "workload.yaml",
+    "smallworkload.yaml",
     jinja_parse_data={
         "N_EINSUMS": 2,
         "M": 64,
@@ -14,6 +14,8 @@ spec = af.Spec.from_yaml(
 
 # print(spec.arch)
 # print(spec.workload)
+print(spec.mapper.metrics)
+spec.mapper.metrics = af.Metrics.LATENCY | af.Metrics.ENERGY
 
 result = spec.map_workload_to_arch()
 with open("image.svg", "w") as f:
