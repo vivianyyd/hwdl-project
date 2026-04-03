@@ -16,4 +16,5 @@ spec = af.Spec.from_yaml(
 # print(spec.workload)
 
 result = spec.map_workload_to_arch()
-print(result)
+with open("image.svg", "w") as f:
+    f.write(result.render())

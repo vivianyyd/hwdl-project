@@ -10,7 +10,7 @@ arch:
       # reference, and they said it left out some things.
     - {name: read, energy: 7.03e-12, latency: 1 / (8 * 614e9)}
     - {name: write, energy: 7.03e-12, latency: 1 / (8 * 614e9)}
-    tensors: {keep: ~Intermediates, may_keep: All}
+    tensors: {keep: All}
 
   - !Compute
     name: ScalarUnit
