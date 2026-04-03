@@ -1,6 +1,5 @@
 import accelforge as af
 
-
 spec = af.Spec.from_yaml(
     af.examples.arches.simple,
     af.examples.workloads.matmuls,
