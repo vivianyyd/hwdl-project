@@ -12,22 +12,31 @@ arch:
     - {name: write, energy: 7.03e-12, latency: 1 / (8 * 614e9)}
     tensors: {keep: All}
 
-  - !Compute
-    name: ScalarUnit
-    area: 10e-6 # 10 um^2. Very rough estimate based on die photo.
-    leak_power: 0
-    actions:
-    - {name: compute, energy: 0, latency: 1 / 1.05e9 / 128}
-    enabled: len(All) == 2
+
+  - !Fork
+    nodes: 
+    - !Fanout
+      name: BigPE 
+      spatial:
+      - {name: reuse_input, fanout: 128, may_reuse: input, reuse: input, min_usage: 1}
+      - {name: reuse_output, fanout: 128, may_reuse: output, reuse: output, min_usage: 1}
+
+    - !Compute
+      name: BigMAC
+      leak_power: 0
+      area: 9e-11 # 90 um^2. Very rough estimate based on die photo.
+      actions:
+      - {name: compute, energy: 0.084e-12, latency: 1 / 1.05e9}
+      enabled: len(All) == 3
 
   - !Fanout
-    name: ProcessingElement
+    name: SmallPE 
     spatial:
-    - {name: reuse_input, fanout: 128, may_reuse: input, reuse: input, min_usage: 1}
-    - {name: reuse_output, fanout: 128, may_reuse: output, reuse: output, min_usage: 1}
+    - {name: reuse_input, fanout: 32, may_reuse: input, reuse: input, min_usage: 1}
+    - {name: reuse_output, fanout: 32, may_reuse: output, reuse: output, min_usage: 1}
 
   - !Compute
-    name: MAC
+    name: SmallMAC
     leak_power: 0
     area: 9e-11 # 90 um^2. Very rough estimate based on die photo.
     actions:
