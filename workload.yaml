@@ -1,0 +1,12 @@
+workload:
+  rank_sizes:
+    M: 64
+    N: 64
+
+  bits_per_value: {All: 8}
+
+  einsums:
+  - C[n] = A[m, n]*x[n]
+  - D[n] = b[n]*y[n]
+  - E[n] = C[n]+D[n]
+
