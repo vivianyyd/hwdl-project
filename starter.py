@@ -20,3 +20,5 @@ spec.mapper.metrics = af.Metrics.LATENCY | af.Metrics.ENERGY
 result = spec.map_workload_to_arch()
 with open("image.svg", "w") as f:
     f.write(result.render())
+
+print(result.resource_usage())

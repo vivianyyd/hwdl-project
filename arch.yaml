@@ -5,16 +5,18 @@ arch:
     size: inf
     leak_power: 0
     area: 0 # Don't include off-chip DRAM area
+    component_class: LPDDR4
+    total_latency: (read_actions + write_actions) / 32 / 200e6
     actions:
       # Upper end of the range from the TPU paper. The lower end came from their
       # reference, and they said it left out some things.
-    - {name: read, energy: 7.03e-12, latency: 1 / (8 * 614e9)}
-    - {name: write, energy: 7.03e-12, latency: 1 / (8 * 614e9)}
+    - {name: read, energy: 7.03e-12}
+    - {name: write, energy: 7.03e-12}
     tensors: {keep: All}
 
   - !Fork
     nodes: 
-    - !Fanout
+    - !Container
       name: FastPE 
       spatial:
       - {name: reuse_input, fanout: 128, may_reuse: input, min_usage: 1}
@@ -28,7 +30,7 @@ arch:
       - {name: compute, energy: 0.084e-12, latency: 1 / 1.05e9}
       enabled: len(All) == 3
 
-  - !Fanout
+  - !Container
     name: SlowPE 
     spatial:
     - {name: reuse_input, fanout: 128, may_reuse: input, min_usage: 1}
