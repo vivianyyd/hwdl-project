@@ -18,12 +18,6 @@ arch:
   - !Fork
     nodes: 
 
-    - !Container
-      name: FastPE 
-      spatial:
-      - {name: reuse_input, fanout: 14, may_reuse: input, min_usage: 1}
-      - {name: reuse_output, fanout: 12, may_reuse: output, min_usage: 1}
-
     - !Memory # Input scratchpad
       name: FastWeightScratchpad
       component_class: SmartBufferSRAM
@@ -33,14 +27,20 @@ arch:
     - !Memory # Input scratchpad
       name: FastInputScratchpad
       component_class: SmartBufferSRAM
-      size: 16 * 192  # 12 16b entries
+      size: 16 * 12  # 12 16b entries
       tensors: {keep: input}
 
     - !Memory # Input scratchpad
       name: FastOutputScratchpad
       component_class: SmartBufferSRAM
-      size: 16 * 16  # 12 16b entries
+      size: 16 * 192  # 12 16b entries
       tensors: {keep: output}
+
+    - !Container
+      name: FastPE 
+      spatial:
+      - {name: reuse_input, fanout: 14, may_reuse: input, min_usage: 1}
+      - {name: reuse_output, fanout: 12, may_reuse: output, min_usage: 1}
 
     - !Compute
       name: FastMAC
@@ -49,13 +49,6 @@ arch:
       actions:
       - {name: compute, energy: 0.084e-12, latency: 1 / 1.05e9}
       enabled: len(All) == 3
-
-  - !Container
-    name: SlowPE 
-    spatial:
-    - {name: reuse_input, fanout: 14, may_reuse: input, min_usage: 1}
-    - {name: reuse_output, fanout: 12, may_reuse: output, min_usage: 1}
-
 
   - !Memory # Input scratchpad
     name: SlowWeightScratchpad
@@ -66,15 +59,22 @@ arch:
   - !Memory # Input scratchpad
     name: SlowInputScratchpad
     component_class: SmartBufferSRAM
-    size: 16 * 192  # 12 16b entries
+    size: 16 * 12  # 12 16b entries
     tensors: {keep: input}
     
   - !Memory # Input scratchpad
     name: SlowOutputScratchpad
     component_class: SmartBufferSRAM
-    size: 16 * 16  # 12 16b entries
+    size: 16 * 192  # 12 16b entries
     tensors: {keep: output}
     
+  - !Container
+    name: SlowPE 
+    spatial:
+    - {name: reuse_input, fanout: 14, may_reuse: input, min_usage: 1}
+    - {name: reuse_output, fanout: 12, may_reuse: output, min_usage: 1}
+
+
   - !Compute
     name: SlowMAC
     leak_power: 0

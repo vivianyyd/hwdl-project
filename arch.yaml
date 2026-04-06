@@ -6,7 +6,7 @@ arch:
     leak_power: 0
     area: 0 # Don't include off-chip DRAM area
     component_class: LPDDR4
-    total_latency: (read_actions + write_actions) / 32 / 200e6
+    total_latency: (read_actions + write_actions) / 32 / 200e6 # equivalent to 6.4e9 bandwidth
     actions:
       # Upper end of the range from the TPU paper. The lower end came from their
       # reference, and they said it left out some things.
@@ -19,8 +19,8 @@ arch:
     - !Container
       name: FastPE 
       spatial:
-      - {name: reuse_input, fanout: 128, may_reuse: input, min_usage: 1}
-      - {name: reuse_output, fanout: 128, may_reuse: output, min_usage: 1}
+      - {name: reuse_input, fanout: 32, may_reuse: input, min_usage: 1}
+      - {name: reuse_output, fanout: 192, may_reuse: output, min_usage: 1}
 
     - !Compute
       name: FastMAC
