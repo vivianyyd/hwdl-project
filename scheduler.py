@@ -1,3 +1,5 @@
+import itertools
+
 class Node:
     UNVISITED = 0
     VISITED = 1
@@ -21,8 +23,9 @@ class Node:
 
     def __repr__(self):
         return (
-            f"Node(einsum_name={self.einsum_name}, "
-            f"flag={self.flag}, compute_unit={self.compute_unit}, "
+            f"Node({self.einsum_name}, "
+            f"compute={self.compute_unit}, "
+            f"deps={[dep.einsum_name for dep in self.dependencies]}, succ={[succ.einsum_name for succ in self.successors]}, "
             f"latency={self.latency})"
         )
 
@@ -62,3 +65,39 @@ def assign_time(
     clocks[node.compute_unit] = curr_schedule[node] + node.latency
     
     node.flag = Node.DONE
+
+
+def placements(einsums: list[str], units: list[str]):
+    """
+    Generates all possible assignments of einsums to compute units. 
+    Things that look like: 
+    {'e1': 'fast', 'e2': 'slow', 'e3': 'fast'}
+    """
+    return [
+        dict(zip(einsums, values))
+        for values in itertools.product(units, repeat=len(einsums))
+    ]
+
+
+def graph_setup(
+    data_dependencies: dict[str, list[str]],
+    structural_dependencies: dict[str, list[str]],
+    compute_assignment: dict[str, str],
+    grid: dict[str, dict[str, float]]
+):
+    nodes = {}
+    for name, compute_type in compute_assignment.items():
+        nodes[name] = Node(name, [], [], compute_type, grid[name][compute_type])
+
+    def add_deps(deps: dict[str, list[str]]):
+        for node_name, dep_names in deps.items():
+            node = nodes[node_name]
+            for dep_name in dep_names:
+                dep_node = nodes[dep_name]
+                node.dependencies.append(dep_node)
+                dep_node.successors.append(node)
+
+    add_deps(data_dependencies)
+    add_deps(structural_dependencies)
+
+    return nodes
