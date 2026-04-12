@@ -35,19 +35,24 @@ workload:
   - einsum: "I[b, m, d] = I_in[b, m, d]"
     is_copy_operation: True
 
-  - "V[b, m, h, e] = Iv[b, m, d] * WV[h, e, d]"
-  - "K[b, m, h, e] = Ik[b, m, d] * WK[h, e, d]"
-  - "Q[b, m, h, e] = Iq[b, m, d] * WQ[h, e, d]"
-
+  - einsum: "V[b, m, h, e] = Iv[b, m, d] * WV[h, e, d]"
+    renames: {input: Iv}
+  - einsum: "K[b, m, h, e] = Ik[b, m, d] * WK[h, e, d]"
+    renames: {input: Ik}
+  - einsum: "Q[b, m, h, e] = Iq[b, m, d] * WQ[h, e, d]"
+    renames: {input: Iq}
   - einsum: "QK[b, m, p, h] = Qqk[b, m, h, e] * Kqk[b, M: p, h, e]"
     renames: {input: Qqk}
   - "QK_softmax[b, m, p, h] = QKs[b, m, p, h]"
 
   - einsum: "AV[b, m, h, f] = QK_softmaxav[b, m, p, h] * Vav[b, M: p, h, E: f]"
     renames: {input: QK_softmaxav}
-  - "Z[b, m, g] = AVz[b, m, h, f] * WZ[h, f, g]"
-  - "FFA[b, m, c] = Zffa[b, m, g] * WFFA[g, c]"
-  - "FFB[b, m, j] = FFAffb[b, m, c] * WFFB[c, j]"
+  - einsum: "Z[b, m, g] = AVz[b, m, h, f] * WZ[h, f, g]"
+    renames: {input: AVz}
+  - einsum: "FFA[b, m, c] = Zffa[b, m, g] * WFFA[g, c]"
+    renames: {input: Zffa}
+  - einsum: "FFB[b, m, j] = FFAffb[b, m, c] * WFFB[c, j]"
+    renames: {input: FFAffb}
 
 renames:
   einsums:
