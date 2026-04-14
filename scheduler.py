@@ -23,9 +23,10 @@ class Node:
 
     def __repr__(self):
         return (
-            f"Node({self.einsum_name}, "
+            f"({self.einsum_name}, "
             f"compute={self.compute_unit}, "
-            f"deps={[dep.einsum_name for dep in self.dependencies]}, succ={[succ.einsum_name for succ in self.successors]}, "
+            # f"deps={[dep.einsum_name for dep in self.dependencies]}, "
+            # f"succ={[succ.einsum_name for succ in self.successors]}, "
             f"latency={self.latency})"
         )
 
@@ -83,11 +84,11 @@ def graph_setup(
     data_dependencies: dict[str, list[str]],
     structural_dependencies: dict[str, list[str]],
     compute_assignment: dict[str, str],
-    grid: dict[str, dict[str, float]]
+    grid
 ):
     nodes = {}
     for name, compute_type in compute_assignment.items():
-        nodes[name] = Node(name, [], [], compute_type, grid[name][compute_type])
+        nodes[name] = Node(name, [], [], compute_type, grid[(compute_type, name)])
 
     def add_deps(deps: dict[str, list[str]]):
         for node_name, dep_names in deps.items():
@@ -101,3 +102,193 @@ def graph_setup(
     add_deps(structural_dependencies)
 
     return nodes
+
+
+def restricted_dependencies(data_dependencies, subset):
+    # For each hardware component, generate a dependency graph consisting of only Einsums assigned to that component.    
+    # This is not a strict subgraph of the original dependency graph. We need to instead propagate dependencies from the original graph. For example, if C depends on B depends on A, but only A and C are scheduled for some hardware component H, the dependency graph for H must include an edge between A and C.
+    result = {node: [] for node in subset}
+
+    for start in subset:
+        visited = set()
+        direct = set()
+
+        stack = list(data_dependencies.get(start, []))
+        while stack:
+            node = stack.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+
+            if node in subset:
+                # Found a subset node reachable from start:
+                # record edge start -> node, but don't go past it
+                direct.add(node)
+            else:
+                # Not in subset: keep going through its dependencies
+                stack.extend(data_dependencies.get(node, []))
+
+        result[start] = list(direct)
+
+    return result
+
+
+def all_topological_sorts(dependency_graph):
+    nodes = set(dependency_graph.keys())
+
+    # Initialize indegree and reverse adjacency (node -> list of nodes that depend on it)
+    indegree = {}
+    children = {}
+    for n in nodes:
+        indegree[n] = 0
+        children[n] = []
+
+    for node, deps in dependency_graph.items():
+        for d in deps:
+            indegree[node] += 1      # node has one more prerequisite
+            children[d].append(node) # d -> node
+
+    result = []
+    current_order = []
+
+    def dfs():
+        # Find all nodes that are available to place next: indegree 0 and not used yet
+        available = [n for n in nodes if indegree[n] == 0 and n not in current_order]
+
+        if not available:
+            # If we've placed all nodes, we got one full topological order
+            if len(current_order) == len(nodes):
+                result.append(list(current_order))
+            return
+
+        # Try each available node as the next in the order
+        for n in available:
+            # Choose n
+            current_order.append(n)
+            # Temporarily "remove" n: reduce indegree of its children
+            changed = []
+            for ch in children[n]:
+                indegree[ch] -= 1
+                changed.append(ch)
+
+            # Recurse
+            dfs()
+
+            # Backtrack
+            for ch in changed:
+                indegree[ch] += 1
+            current_order.pop()
+
+    dfs()
+    return result
+
+
+def structural_deps(toposort: list[str]):
+    result = {}
+    if not toposort:
+        return result
+    result[toposort[0]] = []
+    for i in range(1, len(toposort)):
+        curr = toposort[i]
+        prev = toposort[i - 1]
+        result[curr] = [prev]
+    return result
+
+
+def labelled_cartesian_product(d):
+    """
+    d: dict[str, list[dict]]
+    Return a list of dicts, each formed by taking exactly one dict
+    from each list in d, and merging them.
+    Assumes all keys in all dicts are disjoint; no conflict handling.
+    """
+    items = list(d.items())
+    if not items:
+        return []
+
+    result = []
+
+    def dfs(i, current):
+        if i == len(items):
+            # Reached a full combination
+            result.append(current.copy())
+            return
+
+        key, dict_list = items[i]
+        # For each dict at this label, extend current
+        for choice in dict_list:
+            # Merge choice into current; assume disjoint keys
+            # so we can just update
+            current.update(choice)
+            dfs(i + 1, current)
+            # Backtrack: remove choice's keys from current
+            for k in choice:
+                current.pop(k, None)
+
+    dfs(0, {})
+    return result
+
+
+def untimed_schedules(
+    compute_assignment: dict[str, str],
+    data_dependencies: dict[str, list[str]],
+    compute_units: list[str]
+):
+    """
+    Returns a list of all possible untimed schedules, represented as structural
+    dependencies between einsums. Structural dependencies occur exactly between
+    two einsums that happen one after another on the same compute unit.
+    """
+    # For each untimed schedule, return it in the form of
+    # mapping each einsum to a list containing the one that happens right before it on the 
+    # same compute unit, or the empty list if it is the first to execute on that compute 
+    # unit. Then perform a topological sort of this restricted dependency graph to generate
+    # an order in which Einsums are to be computed on each component.
+    compute_unit_schedules = {}
+    for compute in compute_units:
+        # For debugging
+        # print(
+        #     "\tEinsums restricted to", compute, 
+        #     [e for e, c in compute_assignment.items() if c == compute]
+        # )
+        restricted_deps = restricted_dependencies(
+            data_dependencies, 
+            [e for e, c in compute_assignment.items() if c == compute]
+        )
+        # print("\t\tRestricted deps:", restricted_deps) # debugging
+        toposorts = all_topological_sorts(restricted_deps)
+
+        compute_unit_schedules[compute] = [
+            structural_deps(t)
+            for t in toposorts
+        ]
+    return labelled_cartesian_product(compute_unit_schedules)
+
+
+def best_schedule(
+    einsums,
+    compute_units,
+    data_dependencies,
+    grid
+):
+    best_schedule = None
+    min_latency = float('inf')
+    for compute_assignment in placements(einsums, compute_units):
+        # print("Compute assignment:", compute_assignment)
+        for structural_dependencies in untimed_schedules(compute_assignment, data_dependencies, compute_units):
+            # print("\tUntimed schedule structural deps:", structural_dependencies)
+            # Set up dependency graph for this untimed schedule
+            nodes = graph_setup(
+                data_dependencies,
+                structural_dependencies,
+                compute_assignment,
+                grid
+            )
+            schedule, latency = assign_times(nodes.values())
+            # print("\t\tSchedule:", schedule)
+            if latency < min_latency:
+                best_schedule = schedule
+                min_latency = latency
+
+    return best_schedule, min_latency
+
