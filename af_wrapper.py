@@ -70,12 +70,28 @@ def af_grid(einsums: list[str], units: list[str], einsum_path, arch_path):
                 einsum_path(einsum)
             )
     # Accelforge might return multiple mappings. Pick the best one.
-    best_grid = {}
-    for cell, m in grid_map.items():
+    best_grid_lats = {}
+    best_grid_mems = {}
+    for cell, m in grid.items():
         best = m[0]
         for i in range(len(m)):
             if m[i].latency() < best.latency():
                 best = m[i]
             
-        best_grid[cell] = best.latency()
-    return best_grid
+        best_grid_lats[cell] = best.latency()
+    
+        
+        actions = best.actions(per_einsum=True, per_component=True)
+        latency = best.latency(per_einsum=True)
+        total_reads = 0
+        total_writes = 0
+        for (einsum, lat) in latency.items():
+            component = "MainMemory"
+            reads = actions[(einsum, component, "read")]
+            writes = actions[(einsum, component, "write")]
+            total_reads += reads
+            total_writes += writes
+        rw = total_reads + total_writes
+        best_grid_mems[cell] = rw
+    
+    return best_grid_lats, best_grid_mems
