@@ -30,14 +30,14 @@ workload:
 
   - name: E2
     tensor_accesses:
-    - {name: C, projection: [m, n]}
-    - {name: E, projection: [n, k]}
-    - {name: G, projection: [m, k], output: True}
+    - {name: C, projection: [m, k]}
+    - {name: J, projection: [m, n]}
+    - {name: G, projection: [n, k], output: True}
     renames: {input: C}
 
   - name: E4
     tensor_accesses:
-    - {name: G, projection: [m, k]}
+    - {name: G, projection: [n, k]}
     - {name: I, projection: [k]}
     - {name: H, projection: [k], output: True}
     renames: {input: G}
