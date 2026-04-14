@@ -84,11 +84,11 @@ def graph_setup(
     data_dependencies: dict[str, list[str]],
     structural_dependencies: dict[str, list[str]],
     compute_assignment: dict[str, str],
-    grid: dict[str, dict[str, float]]
+    grid
 ):
     nodes = {}
     for name, compute_type in compute_assignment.items():
-        nodes[name] = Node(name, [], [], compute_type, grid[name][compute_type])
+        nodes[name] = Node(name, [], [], compute_type, grid[(compute_type, name)])
 
     def add_deps(deps: dict[str, list[str]]):
         for node_name, dep_names in deps.items():
@@ -263,4 +263,32 @@ def untimed_schedules(
             for t in toposorts
         ]
     return labelled_cartesian_product(compute_unit_schedules)
+
+
+def best_schedule(
+    einsums,
+    compute_units,
+    data_dependencies,
+    grid
+):
+    best_schedule = None
+    min_latency = float('inf')
+    for compute_assignment in placements(einsums, compute_units):
+        # print("Compute assignment:", compute_assignment)
+        for structural_dependencies in untimed_schedules(compute_assignment, data_dependencies, compute_units):
+            # print("\tUntimed schedule structural deps:", structural_dependencies)
+            # Set up dependency graph for this untimed schedule
+            nodes = graph_setup(
+                data_dependencies,
+                structural_dependencies,
+                compute_assignment,
+                grid
+            )
+            schedule, latency = assign_times(nodes.values())
+            # print("\t\tSchedule:", schedule)
+            if latency < min_latency:
+                best_schedule = schedule
+                min_latency = latency
+
+    return best_schedule, min_latency
 
