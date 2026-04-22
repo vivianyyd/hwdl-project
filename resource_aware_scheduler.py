@@ -11,42 +11,45 @@ class Node:
         dependencies: list["Node"], # nodes this node depends on
         successors: list["Node"], # nodes that depend on this node
         compute_unit: str,
-        latency: float,
+        mapping: float,
         flag: int = UNVISITED
     ):
         self.einsum_name = einsum_name
         self.dependencies = dependencies
         self.successors = successors
         self.compute_unit = compute_unit
-        self.latency = latency
+        self.mapping = mapping
         self.flag = flag
 
     def __repr__(self):
         return (
             f"({self.einsum_name}, "
-            f"compute={self.compute_unit}, "
+            f"compute={self.compute_unit}"
             # f"deps={[dep.einsum_name for dep in self.dependencies]}, "
             # f"succ={[succ.einsum_name for succ in self.successors]}, "
-            f"latency={self.latency})"
         )
 
 
-def assign_times(untimed_schedule: list[Node]) -> tuple[dict[Node, float], float]:
+def assign_times(untimed_schedule: list[Node], memory_name) -> tuple[dict[Node, float], float]:
     """
     Returns the optimal timed schedule and the latency.
     """
     curr_schedule = {}
     clocks = {}
+    chunked_bwu = []
     for node in untimed_schedule:
         if not node.successors: # node is a leaf
-            assign_time(node, curr_schedule, clocks)
+            assign_time(node, memory_name, curr_schedule, clocks, chunked_bwu)
     return curr_schedule, max(clocks.values())
 
 
 def assign_time(
     node: Node,
+    memory_name,
     curr_schedule: dict[Node, float],
-    clocks: dict[str, float]
+    clocks: dict[str, float],
+    # everybody in chunked_bwu has higher priority already
+    chunked_bwu: list[tuple[float, float, float]] # start, end, bwu
 ):
     if node.flag == Node.DONE:
         return
@@ -56,15 +59,62 @@ def assign_time(
     node.flag = Node.VISITED
     
     for dep in node.dependencies:
-        assign_time(dep, curr_schedule, clocks)
-    
-    # assign a time for this node now that deps all have times
-    curr_schedule[node] = max(
+        assign_time(dep, memory_name, curr_schedule, clocks, chunked_bwu)
+
+    # start time
+    start = max(
         (curr_schedule[dep] + dep.latency for dep in node.dependencies), 
         default=0
     )
-    clocks[node.compute_unit] = curr_schedule[node] + node.latency
+
+    if memory_name is None:
+        node.latency = node.mapping.latency()
+    else:
+        # info for this full einsum
+        latency = node.mapping.latency()
+        memory_latency = node.mapping.latency(per_component=True)[memory_name]
+        desired_bwu = memory_latency / latency
+        
+        actions = node.mapping.actions(per_component=True)
+        total_mem_ops = sum(count for (memory, op), count in actions.items() if memory == memory_name)
+        lat_per_mem_op = memory_latency / total_mem_ops
+        memory_ops_remaining = total_mem_ops
     
+    
+        chunk_start = start
+        done = False
+        
+        while not done:
+            if memory_ops_remaining == 0:  # if no memory ops, skip the loop
+                chunk_end = chunk_start + latency
+                done = True
+                break
+            
+            executing_tasks = [t for t in chunked_bwu if t[0] <= chunk_start and t[1] > chunk_start]
+            avail_bwu = 1 - sum(t[2] for t in executing_tasks)
+    
+            if avail_bwu == 0:
+                chunk_start = min([t[1] for t in executing_tasks])
+            else:
+                actual_usage = min(desired_bwu, avail_bwu)
+                
+                # the latency if the available bandwidth remained constant for the full computation
+                actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
+                actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
+                chunk_end = min([t[1] for t in executing_tasks] + (chunk_start + actual_latency))
+                
+                chunked_bwu.append((chunk_start, chunk_end, actual_usage))
+        
+                if (actual_latency == chunk_end - chunk_start):
+                    done = True
+                
+                # set up for next chunk
+                memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
+                chunk_start = chunk_end
+        node.latency = chunk_end - start
+    
+    curr_schedule[node] = start
+    clocks[node.compute_unit] = curr_schedule[node] + node.latency
     node.flag = Node.DONE
 
 
@@ -84,11 +134,11 @@ def graph_setup(
     data_dependencies: dict[str, list[str]],
     structural_dependencies: dict[str, list[str]],
     compute_assignment: dict[str, str],
-    latency_grid
+    mapping_grid
 ):
     nodes = {}
     for name, compute_type in compute_assignment.items():
-        nodes[name] = Node(name, [], [], compute_type, latency_grid[(compute_type, name)])
+        nodes[name] = Node(name, [], [], compute_type, mapping_grid[(compute_type, name)])
 
     def add_deps(deps: dict[str, list[str]]):
         for node_name, dep_names in deps.items():
@@ -269,7 +319,8 @@ def best_schedule(
     einsums,
     compute_units,
     data_dependencies,
-    latency_grid
+    mapping_grid,
+    memory_name
 ):
     best_schedule = None
     min_latency = float('inf')
@@ -282,9 +333,9 @@ def best_schedule(
                 data_dependencies,
                 structural_dependencies,
                 compute_assignment,
-                latency_grid
+                mapping_grid
             )
-            schedule, latency = assign_times(nodes.values())
+            schedule, latency = assign_times(nodes.values(), memory_name)
             # print("\t\tSchedule:", schedule)
             if latency < min_latency:
                 best_schedule = schedule
