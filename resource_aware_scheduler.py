@@ -101,7 +101,7 @@ def assign_time(
                 # the latency if the available bandwidth remained constant for the full computation
                 actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
                 actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
-                chunk_end = min([t[1] for t in executing_tasks] + (chunk_start + actual_latency))
+                chunk_end = min([t[1] for t in executing_tasks] + [chunk_start + actual_latency])
                 
                 chunked_bwu.append((chunk_start, chunk_end, actual_usage))
         

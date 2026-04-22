@@ -78,7 +78,7 @@ def af_grid(einsums: list[str], units: list[str], einsum_path, arch_path):
         for i in range(len(m)):
             if m[i].latency() < best.latency():
                 best = m[i]
-        
+
         best_grid_lats[cell] = best.latency()
     
         
