@@ -17,11 +17,14 @@ def assign_time_bwu(
     Allocates time for [node] and its dependencies, 
     respecting the current schedule, clocks, and bandwidth utilization.
     """
+    if memory_name is None:
+        raise ValueError("How did we end up here?")
+
     if node.flag == Node.DONE:
         return
     if node.flag == Node.VISITED:
         raise ValueError("Cycle in graph")
-    
+
     node.flag = Node.VISITED
     
     for dep in node.dependencies:
@@ -29,70 +32,67 @@ def assign_time_bwu(
 
     # start time
     start = max(
-        (curr_schedule[dep] + dep.latency for dep in node.dependencies), 
+        (curr_schedule[dep] + dep.total_latency for dep in node.dependencies),
         default=0
     )
 
-    if memory_name is None:
-        node.latency = node.mapping.latency()
-    else:
-        # info for this full einsum
-        latency = node.mapping.latency()
-        memory_latency = node.mapping.latency(per_component=True)[memory_name]
-        desired_bwu = memory_latency / latency
-        
-        actions = node.mapping.actions(per_component=True)
-        total_mem_ops = sum(count for (memory, op), count in actions.items() if memory == memory_name)
-        lat_per_mem_op = memory_latency / total_mem_ops
-        memory_ops_remaining = total_mem_ops
+    # info for this full einsum
+    latency = node.total_latency
+    memory_latency = node.latencies_per_unit[memory_name]
+    desired_bwu = memory_latency / latency
     
+    total_mem_ops = sum(count for (memory, op), count in node.actions.items() if memory == memory_name)
+    lat_per_mem_op = memory_latency / total_mem_ops
+    memory_ops_remaining = total_mem_ops
+
+
+    chunk_start = start
+    done = False
     
-        chunk_start = start
-        done = False
+    while not done:
+        if memory_ops_remaining == 0:  # if no memory ops, skip the loop
+            chunk_end = chunk_start + latency
+            done = True
+            break
         
-        while not done:
-            if memory_ops_remaining == 0:  # if no memory ops, skip the loop
-                chunk_end = chunk_start + latency
-                done = True
-                break
+        executing_tasks = [t for t in chunked_bwu if t['start'] <= chunk_start and t['end'] > chunk_start]
+        avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
+
+        if avail_bwu == 0:
+            chunk_start = min([t['start'] for t in executing_tasks])
+        else:
+            actual_usage = min(desired_bwu, avail_bwu)
             
-            executing_tasks = [t for t in chunked_bwu if t['start'] <= chunk_start and t['end'] > chunk_start]
-            avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
-    
-            if avail_bwu == 0:
-                chunk_start = min([t['start'] for t in executing_tasks])
-            else:
-                actual_usage = min(desired_bwu, avail_bwu)
-                
-                # the latency if the available bandwidth remained constant for the full computation
-                actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
-                actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
-                chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
-                
-                chunked_bwu.append({
-                    'einsum': node.einsum_name,
-                    'start': chunk_start,
-                    'end': chunk_end,
-                    'bwu': actual_usage,
-                })
+            # the latency if the available bandwidth remained constant for the full computation
+            actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
+            actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
+            chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
+            
+            chunked_bwu.append({
+                'einsum': node.einsum_name,
+                'start': chunk_start,
+                'end': chunk_end,
+                'bwu': actual_usage,
+            })
 
-                if (actual_latency == chunk_end - chunk_start):
-                    done = True
-                
-                # set up for next chunk
-                memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
-                chunk_start = chunk_end
+            if (actual_latency == chunk_end - chunk_start):
+                done = True
+            
+            # set up for next chunk
+            memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
+            chunk_start = chunk_end
 
-        node.latency = chunk_end - start
-    
+    node.total_latency = chunk_end - start
+
     curr_schedule[node] = start
-    clocks[node.compute_unit] = curr_schedule[node] + node.latency
+    clocks[node.compute_unit] = curr_schedule[node] + node.total_latency
     node.flag = Node.DONE
     if log(curr_schedule):
         print(node, '\t', chunked_bwu)
 
 
 def log(curr_schedule: dict[Node, float]):
+    return False
     e0 = any(
         node.einsum_name == "E0" and node.compute_unit == "fast"
         for node in curr_schedule)

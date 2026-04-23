@@ -23,8 +23,9 @@ def best_schedule(
     einsums,
     compute_units,
     data_dependencies,
-    mapping_grid,
-    latency_grid,
+    latency_per_component_grid,
+    total_latency_grid,
+    actions_grid,
     memory_name
 ):
     best_schedule = None
@@ -35,8 +36,9 @@ def best_schedule(
                 data_dependencies,
                 structural_dependencies,
                 compute_assignment,
-                mapping_grid,
-                latency_grid
+                latency_per_component_grid,
+                total_latency_grid,
+                actions_grid,
             )
             schedule, latency = assign_times(nodes.values(), memory_name)
             if latency < min_latency:

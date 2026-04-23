@@ -9,23 +9,25 @@ class Node:
         dependencies: list["Node"], # nodes this node depends on
         successors: list["Node"], # nodes that depend on this node
         compute_unit: str,
-        mapping = None,
-        latency: float = None,
+        total_latency: float,
+        latencies_per_unit = None,
+        actions = None,
         flag: int = UNVISITED
     ):
         self.einsum_name = einsum_name
         self.dependencies = dependencies
         self.successors = successors
         self.compute_unit = compute_unit
-        self.mapping = mapping
-        self.latency = latency
+        self.total_latency = total_latency
+        self.latencies_per_unit = latencies_per_unit
+        self.actions = actions
         self.flag = flag
 
     def __repr__(self):
         return (
             f"({self.einsum_name}, "
             f"{self.compute_unit}, "
-            f"latency={self.latency})"
+            f"latency={self.total_latency})"
             # f"deps={[dep.einsum_name for dep in self.dependencies]}, "
             # f"succ={[succ.einsum_name for succ in self.successors]}, "
         )
@@ -35,23 +37,27 @@ def graph_setup(
     data_dependencies: dict[str, list[str]],
     structural_dependencies: dict[str, list[str]],
     compute_assignment: dict[str, str],
-    mapping_grid,
-    latency_grid
+    latency_per_component_grid = None,
+    total_latency_grid = None,
+    actions_grid = None,
 ):
-    if mapping_grid is None and latency_grid is None:
-        raise ValueError('Need a grid')
+    if latency_per_component_grid is None and total_latency_grid is None:
+        raise ValueError('Need a latency grid')
+
+    if latency_per_component_grid is not None and actions_grid is None:
+        raise ValueError("Can't do bandwidth-aware scheduling without memory actions")
     
     nodes = {}
     for name, compute_type in compute_assignment.items():
-        mapping = None if mapping_grid is None else mapping_grid[(compute_type, name)]
-        latency = mapping.latency() if latency_grid is None else latency_grid[(compute_type, name)]
+        latencies = None if latency_per_component_grid is None else latency_per_component_grid[(compute_type, name)]
         nodes[name] = Node(
             name, 
             [], 
             [], 
-            compute_type, 
-            mapping=mapping,
-            latency=latency
+            compute_type,
+            total_latency=max(latencies.values()) if total_latency_grid is None else total_latency_grid[(compute_type, name)],
+            latencies_per_unit=latencies,
+            actions=None if actions_grid is None else actions_grid[(compute_type, name)]
         )
 
     def add_deps(deps: dict[str, list[str]]):

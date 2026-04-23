@@ -22,10 +22,10 @@ def assign_time_naive(
     
     # assign a time for this node now that deps all have times
     curr_schedule[node] = max(
-        (curr_schedule[dep] + dep.latency for dep in node.dependencies), 
+        (curr_schedule[dep] + dep.total_latency for dep in node.dependencies),
         default=0
     )
-    clocks[node.compute_unit] = curr_schedule[node] + node.latency
+    clocks[node.compute_unit] = curr_schedule[node] + node.total_latency
     
     node.flag = Node.DONE
 
