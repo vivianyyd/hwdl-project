@@ -1,0 +1,8 @@
+data_dependencies = {
+    "AB": [],
+    "ABC": ["AB"],
+    "ABCD": ["ABC"],
+    "EF": [],
+    "EFG": ["EF"],
+    "EFGH": ["EFG"],
+}
