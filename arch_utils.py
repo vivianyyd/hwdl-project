@@ -36,18 +36,13 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, multiplier: int) 
 
     in_memory_block = False
     target_memory_active = False
-    memory_indent = None
     found_target = False
     size_updated = False
     for index, line in enumerate(lines):
         stripped = line.lstrip()
-        indent = len(line) - len(stripped)
 
         if stripped.startswith("- !"):
-            if target_memory_active and memory_indent is not None and indent <= memory_indent:
-                target_memory_active = False
             in_memory_block = stripped.startswith("- !Memory")
-            memory_indent = indent if in_memory_block else None
             target_memory_active = False
             continue
 
@@ -66,9 +61,11 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, multiplier: int) 
             line_ending = "\n" if line.endswith("\n") else ""
             match = SIZE_PATTERN.match(line_body)
             if match:
+                if size_updated:
+                    raise ValueError(f"Multiple size entries found for memory '{memory_name}' in {base_path}")
                 lines[index] = f"{match.group(1)}{multiplier} * {match.group(2)}{line_ending}"
                 size_updated = True
-                break
+                continue
 
     if not found_target:
         raise ValueError(f"Memory '{memory_name}' not found in {base_path}")
