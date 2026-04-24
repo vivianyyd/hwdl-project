@@ -7,21 +7,22 @@ def assign_time_shared_mem(
     curr_schedule: dict[Node, float],
     clocks: dict[str, float],
     # everybody in chunked_bwu has higher priority already
-    chunked_bwu # list of dicts containing: 
+    chunked_bwu, # list of dicts containing: 
     # 'einsum': str
     # 'start': float
     # 'end': float
     # 'bwu': float
+    # 'mem_usage': dict(str, float)
 ):
     """
     Allocates time for [node] and its dependencies, 
     respecting the current schedule, clocks, and bandwidth utilization.
     """
-
-    # TODO: IMPLEMENT ME
-        
+   
     
     if memory_name is None:
+        raise ValueError("How did we end up here?")
+    if len(node.compute_assignment) <= 1:
         raise ValueError("How did we end up here?")
 
     if node.flag == Node.DONE:
@@ -52,43 +53,72 @@ def assign_time_shared_mem(
 
     chunk_start = start
     done = False
+    bwu_ok = False
+    mem_cap_ok = False
+    node_mem_max_capacity = node.compute_assignment[1:]
     
-    while not done:
+    while not (done or (bwu_ok and mem_cap_ok)):
         if memory_ops_remaining == 0:  # if no memory ops, skip the loop
             chunk_end = chunk_start + latency
             done = True
             break
         
         executing_tasks = [t for t in chunked_bwu if t['start'] <= chunk_start and t['end'] > chunk_start]
+
+        # check memory capacity
+        used_capacities = {}
+        for t in executing_tasks:
+            for k, v in t["mem_usage"].items():
+                used_capacities[k] = used_capacities.get(k, 0) + v
+
+        mem_cap_ok = True
+        mem_cap = {}
+        for mem, capacity in node_mem_max_capacity:
+            if 100 - used_capacities.get(mem, 0) < capacity:
+                memory_ops_remaining = total_mem_ops
+                chunk_start = min([t['end'] for t in executing_tasks])
+                mem_cap_ok = False
+                break
+            mem_cap[mem] = capacity
+        
+        if not mem_cap_ok:
+            continue
+        
+        # check memory bandwidth
         avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
-
         if avail_bwu == 0:
-            chunk_start = min([t['start'] for t in executing_tasks])
-        else:
-            actual_usage = min(desired_bwu, avail_bwu)
-            
-            # the latency if the available bandwidth remained constant for the full computation
-            actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
-            actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
-            chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
-            
-            chunked_bwu.append({
-                'einsum': node.einsum_name,
-                'start': chunk_start,
-                'end': chunk_end,
-                'bwu': actual_usage,
-            })
-
-            if (actual_latency == chunk_end - chunk_start):
-                done = True
-            
-            # set up for next chunk
-            memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
-            chunk_start = chunk_end
+            new_chunk_start = min([t['end'] for t in executing_tasks])
+            assert(new_chunk_start > chunk_start)
+            chunk_start = new_chunk_start
+            continue
+        
+        actual_usage = min(desired_bwu, avail_bwu)
+        
+        # the latency if the available bandwidth remained constant for the full computation
+        actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
+        actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
+        chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
+        
+        if (actual_latency == chunk_end - chunk_start):
+            bwu_ok = True
+        
+        ###### ..
+        chunked_bwu.append({
+            'einsum': node.einsum_name,
+            'start': chunk_start,
+            'end': chunk_end,
+            'bwu': actual_usage,
+            'mem_usage': mem_cap
+        })
+        
+        # set up for next chunk
+        memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
+        chunk_start = chunk_end
 
     node.total_latency = chunk_end - start
 
     curr_schedule[node] = start
     clocks[node.compute_assignment] = curr_schedule[node] + node.total_latency
     node.flag = Node.DONE
+    print(chunked_bwu)
 
