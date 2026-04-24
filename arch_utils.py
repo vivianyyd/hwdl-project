@@ -12,6 +12,19 @@ def _strip_quotes(value: str) -> str:
     return value
 
 
+def _parse_name(line: str) -> str:
+    return _strip_quotes(line.split("name:", 1)[1].strip())
+
+
+def _ensure_size_found(
+    active_memory: str | None,
+    updated_targets: set[str],
+    base_path: Path,
+) -> None:
+    if active_memory and active_memory not in updated_targets:
+        raise ValueError(f"No size found for memory '{active_memory}' in {base_path}")
+
+
 def generate_scaled_memory_yaml(
     prefix: str,
     memory_multipliers: list[tuple[str, int]],
@@ -70,14 +83,13 @@ def generate_scaled_memory_yaml(
         stripped = line.lstrip()
 
         if stripped.startswith("- !"):
-            if target_memory_active and active_memory and active_memory not in updated_targets:
-                raise ValueError(f"No size found for memory '{active_memory}' in {base_path}")
+            _ensure_size_found(active_memory, updated_targets, base_path)
 
             in_memory_block = stripped.startswith("- !Memory")
             target_memory_active = False
             active_memory = None
             if in_memory_block and "name:" in stripped:
-                name_value = _strip_quotes(stripped.split("name:", 1)[1].strip())
+                name_value = _parse_name(stripped)
                 if name_value in multipliers_by_name:
                     target_memory_active = True
                     active_memory = name_value
@@ -88,7 +100,7 @@ def generate_scaled_memory_yaml(
             continue
 
         if stripped.startswith("name:"):
-            name_value = _strip_quotes(stripped.split("name:", 1)[1].strip())
+            name_value = _parse_name(stripped)
             if name_value in multipliers_by_name:
                 target_memory_active = True
                 active_memory = name_value
@@ -113,8 +125,8 @@ def generate_scaled_memory_yaml(
                 updated_targets.add(active_memory)
                 continue
 
-    if target_memory_active and active_memory and active_memory not in updated_targets:
-        raise ValueError(f"No size found for memory '{active_memory}' in {base_path}")
+    if target_memory_active:
+        _ensure_size_found(active_memory, updated_targets, base_path)
 
     missing_targets = [name for name in multipliers_by_name if name not in found_targets]
     if missing_targets:
