@@ -52,7 +52,7 @@ def generate_scaled_memory_yaml(
     if output_path.exists():
         return output_path
 
-    lines = base_path.read_text().splitlines(keepends=True)
+    lines = base_path.read_text(encoding="utf-8").splitlines(keepends=True)
 
     in_memory_block = False
     target_memory_active = False
@@ -117,5 +117,5 @@ def generate_scaled_memory_yaml(
     if missing_targets:
         raise ValueError(f"Memory entries not found in {base_path}: {', '.join(missing_targets)}")
 
-    output_path.write_text("".join(lines))
+    output_path.write_text("".join(lines), encoding="utf-8")
     return output_path
