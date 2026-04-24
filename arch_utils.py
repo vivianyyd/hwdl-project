@@ -3,13 +3,32 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+SIZE_PATTERN = re.compile(r"^(\s*size:\s*)(.*)$")
 
-def generate_scaled_memory_yaml(prefix: str, memory_name: str, n: int) -> Path:
+
+def generate_scaled_memory_yaml(prefix: str, memory_name: str, multiplier: int) -> Path:
+    """Create a new YAML file with a scaled memory size entry.
+
+    The size line is rewritten as `size: <multiplier> * <original>`, preserving
+    existing arithmetic expressions used by the YAML configuration.
+
+    Args:
+        prefix: Path prefix (without extension) for the source YAML file.
+        memory_name: Name of the !Memory node whose size should be scaled.
+        multiplier: Scale factor inserted after the `size:` field.
+
+    Returns:
+        Path to the newly created YAML file, or the existing file if present.
+
+    Raises:
+        FileNotFoundError: If the source YAML file does not exist.
+        ValueError: If the target memory node or its size entry is missing.
+    """
     base_path = Path(f"{prefix}.yaml")
     if not base_path.exists():
         raise FileNotFoundError(f"Missing base YAML file: {base_path}")
 
-    output_path = base_path.with_name(f"{base_path.stem}-{n}.yaml")
+    output_path = base_path.with_name(f"{base_path.stem}-{multiplier}.yaml")
     if output_path.exists():
         return output_path
 
@@ -20,8 +39,6 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, n: int) -> Path:
     memory_indent = None
     found_target = False
     size_updated = False
-    size_pattern = re.compile(r"^(\s*size:\s*)(.*)$")
-
     for index, line in enumerate(lines):
         stripped = line.lstrip()
         indent = len(line) - len(stripped)
@@ -47,9 +64,9 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, n: int) -> Path:
         if target_memory_active:
             line_body = line.rstrip("\n")
             line_ending = "\n" if line.endswith("\n") else ""
-            match = size_pattern.match(line_body)
+            match = SIZE_PATTERN.match(line_body)
             if match:
-                lines[index] = f"{match.group(1)}{n} * {match.group(2)}{line_ending}"
+                lines[index] = f"{match.group(1)}{multiplier} * {match.group(2)}{line_ending}"
                 size_updated = True
                 break
 
