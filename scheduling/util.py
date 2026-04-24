@@ -171,3 +171,54 @@ def untimed_schedules(
         ]
     return labelled_cartesian_product(compute_unit_schedules)
 
+
+
+def generate_architecture_pairings(
+    compute_units,  # list of compute unit names. e.g. ['c1', 'c2', 'c3']
+    shared_memory_info,
+        # only includes shared memory that has a capacity (i.e. DRAM not included)
+        # {memory unit name : list of valid partitions to compute units}
+        # for example,
+        # {'m1' : [(50, 25, 25), (25, 50, 25), ...], 'm2' : [(0, 0, 100), (50, 25, 25), ...]}
+        # for an architecture with 2 shared memory levels and 3 compute units.
+        # the first (resp. second, third) element in each 3-tuple is the memory allocated to c1 (resp. c2, c3).
+):
+    """
+    from shared_memory_info and compute_units, generate a list of tuples
+    following the examples above, we should generate a list of the form
+    [('c1', ('m1', 50), ('m2', 0)), ('c1', ('m1', 50), ('m2', 50)),
+     ('c1', ('m1', 25), ('m2', 0)), ('c1', ('m1', 25), ('m2', 50)),
+      ...
+     ('c2', ('m1', 25), ('m2', 0)), ('c2', ('m1', 25), ('m2', 25)),
+     ('c2', ('m1', 50), ('m2', 0)), ('c2', ('m1', 50), ('m2', 25)), ...]
+    each element in this list is also a key to the grids.
+    """
+    if shared_memory_info is None:
+        return compute_units
+
+    memory_names = list(shared_memory_info.keys())
+    architecture_pairings = []
+
+    for cu_idx, cu in enumerate(compute_units):
+        # For this compute unit, get possible allocations from each memory
+        per_memory_choices = []
+
+        for mem in memory_names:
+            partitions = shared_memory_info[mem]
+
+            # collect unique allocations for this compute unit from all partitions
+            allocations = sorted({
+                partition[cu_idx]
+                for partition in partitions
+            })
+
+            # tag with memory name
+            per_memory_choices.append([
+                (mem, alloc) for alloc in allocations
+            ])
+
+        # Cartesian product across memories
+        for combo in itertools.product(*per_memory_choices):
+            architecture_pairings.append((cu, *combo))
+
+    return architecture_pairings

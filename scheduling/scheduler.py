@@ -44,21 +44,7 @@ def best_schedule(
     best_schedule = None
     min_latency = float('inf')
 
-
-    def fail():
-        ValueError("todo: see comment 1")
-
-    architecture_pairings = compute_units if shared_memory_info is None else fail()
-    # comment 1
-    # from shared_memory_info and compute_units, generate a list of tuples
-    # following the examples above, we should generate a list of the form
-    # [('c1', ('m1', 50), ('m2', 0)), ('c1', ('m1', 50), ('m2', 50)),
-    #  ('c1', ('m1', 25), ('m2', 0)), ('c1', ('m1', 25), ('m2', 50)),
-    #  ...
-    #  ('c2', ('m1', 25), ('m2', 0)), ('c2', ('m1', 25), ('m2', 25)),
-    #  ('c2', ('m1', 50), ('m2', 0)), ('c2', ('m1', 50), ('m2', 25)), ...]
-    # each element in this list is also a key to the grids. so probably this function should be exposed elsewhere too idk kinda ugly oops point is
-    # from here on, compute_units and shared_memory_info should never be mentioned again - we only use architecture_pairings as keys into grid
+    architecture_pairings = generate_architecture_pairings(compute_units, shared_memory_info)
     
     for compute_assignment in placements(einsums, architecture_pairings):
         for structural_dependencies in untimed_schedules(compute_assignment, data_dependencies, compute_units):
