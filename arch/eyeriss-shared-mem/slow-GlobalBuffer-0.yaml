@@ -14,7 +14,7 @@ arch:
   - !Memory
     name: GlobalBuffer
     component_class: SmartBufferSRAM
-    size: 0.25 * (1024 * 1024 # 1Mb)
+    size: 1
     # 32 reads and writes per cycle, 200MHz. Note that the bits per read/write is the
     # bits per action set below. This is optional, and if it is omitted, then the total
     # latency is the sum of the latencies of all actions, and action latency is taken

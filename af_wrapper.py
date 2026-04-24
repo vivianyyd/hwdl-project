@@ -1,4 +1,5 @@
 import accelforge as af
+from arch.arch_utils import *
 
 
 def trunc(s):
@@ -119,6 +120,47 @@ def af_memoizable_grid(einsums: list[str], units: list[str], einsum_path, arch_p
             print("Getting cell " + str(i) + " of " + str(len(einsums) * len(units)))
             grid[(sub_arch, einsum)] = af_map(
                 arch_path(sub_arch),
+                einsum_path(einsum)
+            )
+    # Accelforge might return multiple mappings. Pick the best one.
+    best_grid_lats = {}
+    best_grid_actions = {}
+    best_grid_maps = {}
+    for cell, m in grid.items():
+        best = m[0]
+        for i in range(len(m)):
+            if m[i].latency() < best.latency():
+                best = m[i]
+
+        best_grid_lats[cell] = best.latency(per_component=True)
+        best_grid_actions[cell] = best.actions(per_component=True)
+        best_grid_maps[cell] = best
+    
+    return best_grid_lats, best_grid_actions, best_grid_maps
+
+
+def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_path):
+    """
+    [einsum_path] and [arch_path] are functions which take an einsum 
+    or arch name respectively, and return the path to the appropriate 
+    .yaml file.
+
+    Returns grid
+    from (compute unit, einsum)
+    to (latency per component, actions per component, mapping)
+    """    
+    grid = {}
+    i = 0
+    for sub_arch in arch_pairings:
+        compute = sub_arch[0]
+        mems = list(sub_arch[1:])
+        generate_scaled_memory_yaml(arch_path + compute, mems)
+
+        for einsum in einsums:
+            i += 1
+            print("Getting cell " + str(i) + " of " + str(len(einsums) * len(arch_pairings)) ": " + einsum + arch_pairings)
+            grid[(sub_arch, einsum)] = af_map(
+                arch_path + compute + "-" + "-".join(f"{s}-{n}" for s, n in mems) + ".yaml",
                 einsum_path(einsum)
             )
     # Accelforge might return multiple mappings. Pick the best one.

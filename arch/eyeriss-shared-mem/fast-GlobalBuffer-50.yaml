@@ -14,7 +14,7 @@ arch:
   - !Memory
     name: GlobalBuffer
     component_class: SmartBufferSRAM
-    size: 0.5 * (1024 * 1024 # 1Mb)
+    size: 0.5 * 1024 * 1024 # 1Mb)
     # 32 reads and writes per cycle, 200MHz. Note that the bits per read/write is the
     # bits per action set below. This is optional, and if it is omitted, then the total
     # latency is the sum of the latencies of all actions, and action latency is taken
@@ -27,31 +27,31 @@ arch:
     tensors: {keep: ~MainMemory, may_keep: All}
 
   - !Container
-    name: SlowProcessingElement
+    name: FastProcessingElement
     spatial:
     - {name: reuse_weight, fanout: 14, may_reuse: weight, reuse: weight, min_usage: 1}
     - {name: reuse_output, fanout: 12, may_reuse: output, reuse: output, min_usage: 1}
 
   - !Memory # Input scratchpad
-    name: SlowInputScratchpad
+    name: FastInputScratchpad
     component_class: SmartBufferSRAM
     size: 12 * 16 # 12 16b entries
     tensors: {keep: input}
 
   - !Memory # Weight scratchpad
-    name: SlowWeightScratchpad
+    name: FastWeightScratchpad
     component_class: SmartBufferSRAM
     size: 192 * 16 # 12 16b entries
     tensors: {keep: weight}
 
   - !Memory # Output scratchpad
-    name: SlowOutputScratchpad
+    name: FastOutputScratchpad
     component_class: SmartBufferSRAM
     size: 16 * 16 # 16 16b entries
     tensors: {keep: output}
 
   - !Compute # MAC unit
-    name: SlowMAC
+    name: FastMAC
     component_class: IntMAC
-    total_latency: compute_actions / (200e6 / 3)
+    total_latency: compute_actions / 200e6
     extra_attributes_for_component_model: {multiplier_width: 8, adder_width: 16}

@@ -62,12 +62,9 @@ def generate_scaled_memory_yaml(
     if not base_path.exists():
         raise FileNotFoundError(f"Missing base YAML file: {base_path}")
 
-    if len(memory_multipliers) == 1:
-        suffix = str(memory_multipliers[0][1])
-    else:
-        suffix = "-".join(
-            f"{name}-{multiplier}" for name, multiplier in memory_multipliers
-        )
+    suffix = "-".join(
+        f"{name}-{multiplier}" for name, multiplier in memory_multipliers
+    )
     output_path = base_path.with_name(f"{base_path.stem}-{suffix}.yaml")
     if output_path.exists():
         return output_path
@@ -119,8 +116,8 @@ def generate_scaled_memory_yaml(
                     )
                 multiplier = multipliers_by_name[active_memory]
                 original_size = match.group(2).strip()
-                lines[index] = (
-                    f"{match.group(1)}{multiplier/100} * ({original_size}){match.group(3)}"
+                lines[index] = f"{match.group(1)}1{match.group(3)}" if multiplier == 0 else ( # this is really dumb
+                    f"{match.group(1)}{multiplier/100} * {original_size}){match.group(3)}"
                 )
                 updated_targets.add(active_memory)
                 continue
