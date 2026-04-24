@@ -20,7 +20,7 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, n: int) -> Path:
     memory_indent = None
     found_target = False
     size_updated = False
-    size_pattern = re.compile(r"^(\s*size:\s*)(.+)$")
+    size_pattern = re.compile(r"^(\s*size:\s*)(.*)$")
 
     for index, line in enumerate(lines):
         stripped = line.lstrip()
@@ -28,8 +28,7 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, n: int) -> Path:
 
         if stripped.startswith("- !"):
             if target_memory_active and memory_indent is not None and indent <= memory_indent:
-                raise ValueError(f"No size found for memory '{memory_name}' in {base_path}")
-
+                target_memory_active = False
             in_memory_block = stripped.startswith("- !Memory")
             memory_indent = indent if in_memory_block else None
             target_memory_active = False
@@ -46,9 +45,11 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, n: int) -> Path:
             continue
 
         if target_memory_active:
-            match = size_pattern.match(line)
+            line_body = line.rstrip("\n")
+            line_ending = "\n" if line.endswith("\n") else ""
+            match = size_pattern.match(line_body)
             if match:
-                lines[index] = f"{match.group(1)}{n} * {match.group(2)}"
+                lines[index] = f"{match.group(1)}{n} * {match.group(2)}{line_ending}"
                 size_updated = True
                 break
 
