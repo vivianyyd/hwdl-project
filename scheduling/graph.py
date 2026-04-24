@@ -36,7 +36,7 @@ class Node:
 def graph_setup(
     data_dependencies: dict[str, list[str]],
     structural_dependencies: dict[str, list[str]],
-    compute_assignment: dict[str, str],
+    compute_assignment,
     latency_per_component_grid = None,
     total_latency_grid = None,
     actions_grid = None,

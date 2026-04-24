@@ -2,16 +2,22 @@ from scheduling.graph import *
 from scheduling.util import *
 from scheduling.talloc_bw import *
 from scheduling.talloc_naive import *
+from scheduling.talloc_share_mem import *
 
 
-def assign_times(untimed_schedule: list[Node], memory_name) -> tuple[dict[Node, float], float]:
+def assign_times(untimed_schedule: list[Node], memory_name, shared_memory_info) -> tuple[dict[Node, float], float]:
     """
     Returns the optimal timed schedule and the latency.
+
+    shared_memory_info is only really used as a flag here to tell that we should call the tallocator that considers shared memory capacity.
     """
     curr_schedule = {}
     clocks = {}
     for node in untimed_schedule:
         if not node.successors: # node is a leaf
+            if shared_memory_info != None:
+                raise ValueError("implement assign_time_shared_mem")
+                assign_time_shared_mem(node, memory_name, curr_schedule, clocks, [])
             if memory_name == None:
                 assign_time_naive(node, curr_schedule, clocks)
             else:
@@ -21,7 +27,14 @@ def assign_times(untimed_schedule: list[Node], memory_name) -> tuple[dict[Node, 
 
 def best_schedule(
     einsums,
-    compute_units,
+    compute_units,  # list of compute unit names. e.g. ['c1', 'c2', 'c3']
+    shared_memory_info,
+        # only includes shared memory that has a capacity (i.e. DRAM not included)
+        # {memory unit name : list of valid partitions to compute units}
+        # for example,
+        # {'m1' : [(50, 25, 25), (25, 50, 25), ...], 'm2' : [(0, 0, 100), (50, 25, 25), ...]}
+        # for an architecture with 2 shared memory levels and 3 compute units.
+        # the first (resp. second, third) element in each 3-tuple is the memory allocated to c1 (resp. c2, c3).
     data_dependencies,
     latency_per_component_grid,
     total_latency_grid,
@@ -30,7 +43,20 @@ def best_schedule(
 ):
     best_schedule = None
     min_latency = float('inf')
-    for compute_assignment in placements(einsums, compute_units):
+
+    architecture_pairings = compute_units if shared_memory_info is None else raise ValueError("todo: see comment 1")
+    # comment 1
+    # from shared_memory_info and compute_units, generate a list of tuples
+    # following the examples above, we should generate a list of the form
+    # [('c1', ('m1', 50), ('m2', 0)), ('c1', ('m1', 50), ('m2', 50)),
+    #  ('c1', ('m1', 25), ('m2', 0)), ('c1', ('m1', 25), ('m2', 50)),
+    #  ...
+    #  ('c2', ('m1', 25), ('m2', 0)), ('c2', ('m1', 25), ('m2', 25)),
+    #  ('c2', ('m1', 50), ('m2', 0)), ('c2', ('m1', 50), ('m2', 25)), ...]
+    # each element in this list is also a key to the grids. so probably this function should be exposed elsewhere too idk kinda ugly oops point is
+    # from here on, compute_units and shared_memory_info should never be mentioned again - we only use architecture_pairings as keys into grid
+    
+    for compute_assignment in placements(einsums, architecture_pairings):
         for structural_dependencies in untimed_schedules(compute_assignment, data_dependencies, compute_units):
             nodes = graph_setup(
                 data_dependencies,
@@ -40,7 +66,7 @@ def best_schedule(
                 total_latency_grid,
                 actions_grid,
             )
-            schedule, latency = assign_times(nodes.values(), memory_name)
+            schedule, latency = assign_times(nodes.values(), memory_name, shared_memory_info)
             if latency < min_latency:
                 best_schedule = schedule
                 min_latency = latency
