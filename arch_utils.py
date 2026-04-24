@@ -6,6 +6,12 @@ from pathlib import Path
 SIZE_PATTERN = re.compile(r"^(\s*size:\s*)(.*\S)(\s*)$")
 
 
+def _strip_quotes(value: str) -> str:
+    if value.startswith(("'", '"')) and value.endswith(("'", '"')):
+        return value[1:-1]
+    return value
+
+
 def generate_scaled_memory_yaml(
     prefix: str,
     memory_multipliers: list[tuple[str, int]],
@@ -13,9 +19,10 @@ def generate_scaled_memory_yaml(
     """Create a new YAML file with scaled memory size entries.
 
     The size line is rewritten as `size: <multiplier> * <original>`, preserving
-    existing arithmetic expressions used by the YAML configuration. The output
-    filename suffix is the multiplier for a single entry, or name/multiplier
-    pairs joined by "-" for multiple entries.
+    existing arithmetic expressions used by the YAML configuration. The original
+    size expression is wrapped in parentheses to preserve evaluation order when
+    applying the multiplier. The output filename suffix is the multiplier for a
+    single entry, or name/multiplier pairs joined by "-" for multiple entries.
 
     Args:
         prefix: Path prefix (without extension) for the source YAML file.
@@ -70,9 +77,7 @@ def generate_scaled_memory_yaml(
             target_memory_active = False
             active_memory = None
             if in_memory_block and "name:" in stripped:
-                name_value = stripped.split("name:", 1)[1].strip()
-                if name_value.startswith(("'", '"')) and name_value.endswith(("'", '"')):
-                    name_value = name_value[1:-1]
+                name_value = _strip_quotes(stripped.split("name:", 1)[1].strip())
                 if name_value in multipliers_by_name:
                     target_memory_active = True
                     active_memory = name_value
@@ -83,9 +88,7 @@ def generate_scaled_memory_yaml(
             continue
 
         if stripped.startswith("name:"):
-            name_value = stripped.split("name:", 1)[1].strip()
-            if name_value.startswith(("'", '"')) and name_value.endswith(("'", '"')):
-                name_value = name_value[1:-1]
+            name_value = _strip_quotes(stripped.split("name:", 1)[1].strip())
             if name_value in multipliers_by_name:
                 target_memory_active = True
                 active_memory = name_value
