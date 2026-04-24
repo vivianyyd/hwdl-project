@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SIZE_PATTERN = re.compile(r"^(\s*size:\s*)(.*)$")
+SIZE_PATTERN = re.compile(r"^(\s*size:\s*)(.*?)(\s*)$")
 
 
 def generate_scaled_memory_yaml(prefix: str, memory_name: str, multiplier: int) -> Path:
@@ -44,6 +44,13 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, multiplier: int) 
         if stripped.startswith("- !"):
             in_memory_block = stripped.startswith("- !Memory")
             target_memory_active = False
+            if in_memory_block and "name:" in stripped:
+                name_value = stripped.split("name:", 1)[1].strip()
+                if name_value.startswith(("'", '"')) and name_value.endswith(("'", '"')):
+                    name_value = name_value[1:-1]
+                target_memory_active = name_value == memory_name
+                if target_memory_active:
+                    found_target = True
             continue
 
         if not in_memory_block:
@@ -51,19 +58,19 @@ def generate_scaled_memory_yaml(prefix: str, memory_name: str, multiplier: int) 
 
         if stripped.startswith("name:"):
             name_value = stripped.split("name:", 1)[1].strip()
+            if name_value.startswith(("'", '"')) and name_value.endswith(("'", '"')):
+                name_value = name_value[1:-1]
             target_memory_active = name_value == memory_name
             if target_memory_active:
                 found_target = True
             continue
 
         if target_memory_active:
-            line_body = line.rstrip("\n")
-            line_ending = "\n" if line.endswith("\n") else ""
-            match = SIZE_PATTERN.match(line_body)
+            match = SIZE_PATTERN.match(line)
             if match:
                 if size_updated:
                     raise ValueError(f"Multiple size entries found for memory '{memory_name}' in {base_path}")
-                lines[index] = f"{match.group(1)}{multiplier} * {match.group(2)}{line_ending}"
+                lines[index] = f"{match.group(1)}{multiplier} * {match.group(2)}{match.group(3)}"
                 size_updated = True
                 continue
 
