@@ -44,7 +44,11 @@ def best_schedule(
     best_schedule = None
     min_latency = float('inf')
 
-    architecture_pairings = compute_units if shared_memory_info is None else raise ValueError("todo: see comment 1")
+
+    def fail():
+        ValueError("todo: see comment 1")
+
+    architecture_pairings = compute_units if shared_memory_info is None else fail()
     # comment 1
     # from shared_memory_info and compute_units, generate a list of tuples
     # following the examples above, we should generate a list of the form

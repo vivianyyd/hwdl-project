@@ -8,7 +8,9 @@ class Node:
         einsum_name: str,
         dependencies: list["Node"], # nodes this node depends on
         successors: list["Node"], # nodes that depend on this node
-        compute_unit: str,
+        compute_assignment,
+            # when considering shared memory, this is a tuple (compute, (mem1, percent1), (mem2, percent2), ...)
+            # when not considering shared memory, this is simply a string 'compute'
         total_latency: float,
         latencies_per_unit = None,
         actions = None,
@@ -17,7 +19,7 @@ class Node:
         self.einsum_name = einsum_name
         self.dependencies = dependencies
         self.successors = successors
-        self.compute_unit = compute_unit
+        self.compute_assignment = compute_assignment
         self.total_latency = total_latency
         self.latencies_per_unit = latencies_per_unit
         self.actions = actions
@@ -26,7 +28,7 @@ class Node:
     def __repr__(self):
         return (
             f"({self.einsum_name}, "
-            f"{self.compute_unit}, "
+            f"{self.compute_assignment}, "
             f"latency={self.total_latency})"
             # f"deps={[dep.einsum_name for dep in self.dependencies]}, "
             # f"succ={[succ.einsum_name for succ in self.successors]}, "

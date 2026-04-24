@@ -85,7 +85,7 @@ def assign_time_bwu(
     node.total_latency = chunk_end - start
 
     curr_schedule[node] = start
-    clocks[node.compute_unit] = curr_schedule[node] + node.total_latency
+    clocks[node.compute_assignment] = curr_schedule[node] + node.total_latency
     node.flag = Node.DONE
     if log(curr_schedule):
         print(node, '\t', chunked_bwu)
@@ -94,19 +94,19 @@ def assign_time_bwu(
 def log(curr_schedule: dict[Node, float]):
     return False
     e0 = any(
-        node.einsum_name == "E0" and node.compute_unit == "fast"
+        node.einsum_name == "E0" and node.compute_assignment == "fast"
         for node in curr_schedule)
     e1 = any(
-        node.einsum_name == "E1" and node.compute_unit == "slow"
+        node.einsum_name == "E1" and node.compute_assignment == "slow"
         for node in curr_schedule)
     e2 = any(
-        node.einsum_name == "E2" and node.compute_unit == "fast"
+        node.einsum_name == "E2" and node.compute_assignment == "fast"
         for node in curr_schedule)
     e3 = any(
-        node.einsum_name == "E3" and node.compute_unit == "slow"
+        node.einsum_name == "E3" and node.compute_assignment == "slow"
         for node in curr_schedule)
     e4 = any(
-        node.einsum_name == "E4" and node.compute_unit == "slow"
+        node.einsum_name == "E4" and node.compute_assignment == "slow"
         for node in curr_schedule)
 
     return e0 and e1 and e2 and e3 and e4

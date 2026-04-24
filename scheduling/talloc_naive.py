@@ -25,7 +25,7 @@ def assign_time_naive(
         (curr_schedule[dep] + dep.total_latency for dep in node.dependencies),
         default=0
     )
-    clocks[node.compute_unit] = curr_schedule[node] + node.total_latency
+    clocks[node.compute_assignment] = curr_schedule[node] + node.total_latency
     
     node.flag = Node.DONE
 
