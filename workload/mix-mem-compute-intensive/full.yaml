@@ -1,0 +1,73 @@
+workload:
+  iteration_space_shape:
+    m:  0 <= m  < 128
+    n: 0 <= n < 128
+    k: 0 <= k < 128
+  bits_per_value: {All: 8}
+
+  einsums:
+  # --- left side: a few matmuls ---
+  - name: AB
+    tensor_accesses:
+    - {name: A, projection: [m, n]}
+    - {name: B, projection: [n, k]}
+    - {name: AB, projection: [m, k], output: True}
+    renames: {input: A}
+  
+  - name: ABC
+    tensor_accesses:
+    - {name: AB, projection: [m, n]}
+    - {name: C, projection: [n, k]}
+    - {name: ABC, projection: [m, k], output: True}
+    renames: {input: AB}
+  
+  - name: ABCD
+    tensor_accesses:
+    - {name: ABC, projection: [m, n]}
+    - {name: D, projection: [n, k]}
+    - {name: ABCD, projection: [m, k], output: True}
+    renames: {input: ABC}
+  
+  # --- right side: a few matvecs ---
+  - name: Y0
+    tensor_accesses:
+    - {name: E0, projection: [m, n]}
+    - {name: X0, projection: [n]}
+    - {name: Y0, projection: [m], output: True}
+    renames: {input: E0}
+  
+  - name: Y1
+    tensor_accesses:
+    - {name: E1, projection: [m, n]}
+    - {name: Y0, projection: [n]}
+    - {name: Y1, projection: [m], output: True}
+    renames: {input: E1}
+  
+  - name: Y2
+    tensor_accesses:
+    - {name: E2, projection: [m, n]}
+    - {name: Y1, projection: [n]}
+    - {name: Y2, projection: [m], output: True}
+    renames: {input: E2}
+  
+  # --- join at the end: matmul (ABCD) * (Y2) ---
+  - name: OUT
+    tensor_accesses:
+    - {name: ABCD, projection: [m, n]}
+    - {name: Y2, projection: [n]}
+    - {name: OUT, projection: [m], output: True}
+    renames: {input: ABCD}
+
+renames:
+  einsums:
+  - name: default
+    tensor_accesses:
+    - name: input
+      source: Inputs & Intermediates
+      expected_count: 1
+    - name: output
+      source: Outputs
+      expected_count: 1
+    - name: weight
+      source: ~(input | output)
+      expected_count: 1

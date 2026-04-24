@@ -1,0 +1,14 @@
+data_dependencies = {
+    # left (matmuls)
+    "AB": [],
+    "ABC": ["AB"],
+    "ABCD": ["ABC"],
+
+    # right (matvecs)
+    "Y0": [],
+    "Y1": ["Y0"],
+    "Y2": ["Y1"],
+
+    # join
+    "OUT": ["ABCD", "Y2"],
+}
