@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-SIZE_PATTERN = re.compile(r"^(\s*size:\s*)(.*?)(\s*)$")
+SIZE_PATTERN = re.compile(r"^(\s*size:\s*)(.*\S)(\s*)$")
 
 
 def generate_scaled_memory_yaml(
@@ -14,7 +14,8 @@ def generate_scaled_memory_yaml(
 
     The size line is rewritten as `size: <multiplier> * <original>`, preserving
     existing arithmetic expressions used by the YAML configuration. The output
-    filename suffix is the list of multipliers joined by "-".
+    filename suffix is the multiplier for a single entry, or name/multiplier
+    pairs joined by "-" for multiple entries.
 
     Args:
         prefix: Path prefix (without extension) for the source YAML file.
@@ -41,7 +42,12 @@ def generate_scaled_memory_yaml(
     if not base_path.exists():
         raise FileNotFoundError(f"Missing base YAML file: {base_path}")
 
-    suffix = "-".join(str(multiplier) for _, multiplier in memory_multipliers)
+    if len(memory_multipliers) == 1:
+        suffix = str(memory_multipliers[0][1])
+    else:
+        suffix = "-".join(
+            f"{name}-{multiplier}" for name, multiplier in memory_multipliers
+        )
     output_path = base_path.with_name(f"{base_path.stem}-{suffix}.yaml")
     if output_path.exists():
         return output_path
@@ -97,7 +103,10 @@ def generate_scaled_memory_yaml(
                         f"Multiple size entries found for memory '{active_memory}' in {base_path}"
                     )
                 multiplier = multipliers_by_name[active_memory]
-                lines[index] = f"{match.group(1)}{multiplier} * {match.group(2)}{match.group(3)}"
+                original_size = match.group(2).strip()
+                lines[index] = (
+                    f"{match.group(1)}{multiplier} * ({original_size}){match.group(3)}"
+                )
                 updated_targets.add(active_memory)
                 continue
 
