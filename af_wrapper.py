@@ -117,7 +117,7 @@ def af_memoizable_grid(einsums: list[str], units: list[str], einsum_path, arch_p
     for sub_arch in units:
         for einsum in einsums:
             i += 1
-            print("Getting cell " + str(i) + " of " + str(len(einsums) * len(units)))
+            print("Getting cell", str(i), "of", str(len(einsums) * len(units)))
             grid[(sub_arch, einsum)] = af_map(
                 arch_path(sub_arch),
                 einsum_path(einsum)
@@ -158,7 +158,7 @@ def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_
 
         for einsum in einsums:
             i += 1
-            print("Getting cell " + str(i) + " of " + str(len(einsums) * len(arch_pairings)) ": " + einsum + arch_pairings)
+            print("Getting cell", str(i), "of", str(len(einsums) * len(arch_pairings)), ":", einsum, sub_arch)
             grid[(sub_arch, einsum)] = af_map(
                 arch_path + compute + "-" + "-".join(f"{s}-{n}" for s, n in mems) + ".yaml",
                 einsum_path(einsum)
