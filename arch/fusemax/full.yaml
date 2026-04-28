@@ -1,0 +1,85 @@
+arch:
+  extra_attributes_for_all_component_models: {cycle_period: 1.0638297873e-9} # 940 MHz
+  nodes: # Top-level is hierarchical
+  - !Container # Top-level system
+    name: system
+
+  - !Memory # DRAM main memory
+    name: DRAM
+    component_class: LPDDR4
+    size: inf
+    actions:
+    - {name: read, bits_per_action: 16}
+    - {name: write, bits_per_action: 16}
+    total_latency: (read_actions + write_actions) / 2.147e11
+    extra_attributes_for_component_model:
+      width: 64
+      # datawidth: 16
+      # We do not want to model memory bandwidth since Timeloop does not have
+      # enough information to do the appropriate throttling
+      # Memory bandwidth is accounted for in post-procesing
+      # 400 * 2^30 B / s * word / 2B * s / 10^9 cycles = 214.7 words/cycle
+      # shared_bandwidth: 215
+
+  - !Memory # L3 buffer
+    name: L3
+    component_class: smartbuffer_SRAM
+    size: 32768 * 4096 # depth * width
+    actions:
+    - {name: read, bits_per_action: 16}
+    - {name: write, bits_per_action: 16}
+    extra_attributes_for_component_model: 
+      { n_banks: 32, width: 4096, depth: 32768}
+      # datawidth: 16
+
+
+  - !Fork
+    nodes:
+    - !Memory # Register file of the 1D PE array buffer
+      name: reg_file_1d2D
+      component_class: aladdin_register # storage
+      size: 8192 * 16
+      extra_attributes_for_component_model: 
+        { width: 16, depth: 8192}
+    
+    - !Container # Array of PEs
+      name: PE_col2D
+      spatial:
+      - {name: meshXcol, fanout: 256, may_reuse: input, min_usage: 1}
+    
+    - !Container # Array of PEs
+      name: PE2D
+      spatial:
+      - {name: meshY, fanout: 256, may_reuse: input, min_usage: 1}
+    
+    - !Memory
+      name: reg_file2D
+      component_class: aladdin_register # storage
+      size: 16 * 16
+      extra_attributes_for_component_model: 
+        { width: 16, depth: 16}
+        # datawidth: 16
+    
+    - !Compute # MAC unit
+      name: MAC2D
+      component_class: intmac
+      extra_attributes_for_component_model: {multiplier_width: 16, adder_width: 16}
+
+
+  - !Container
+    name: PE1D
+    spatial:
+    - {name: meshX, fanout: 256, may_reuse: input, min_usage: 1}
+
+  - !Memory
+    name: reg_file1D
+    component_class: aladdin_register # storage
+    size: 32 * 16
+    extra_attributes_for_component_model: 
+      { width: 16, depth: 32}
+      # datawidth: 16
+
+  - !Compute # MAC unit
+    name: MAC1D
+    component_class: intmac
+    extra_attributes_for_component_model: {multiplier_width: 16, adder_width: 16}
