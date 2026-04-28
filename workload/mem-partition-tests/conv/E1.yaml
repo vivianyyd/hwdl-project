@@ -1,0 +1,28 @@
+renames:
+  einsums:
+  - name: default
+    tensor_accesses:
+    - name: input
+      source: Inputs & Intermediates
+      expected_count: 1
+    - name: output
+      source: Outputs
+      expected_count: 1
+    - name: weight
+      source: ~(input | output)
+      expected_count: 1
+
+workload:
+  bits_per_value: {All: 8}
+  rank_sizes: {N: 4}
+
+  einsums:
+  - einsum: "T1[p1, q1, n, m1] = I1[n, c1, H: p1 + r1, W: q1 + s1] * W1[r1, s1, c1, m1]"
+    iteration_space_shape:
+    - 0 <= p1 < 56
+    - 0 <= q1 < 56
+    - 0 <= c1 < 64
+    - 0 <= m1 < 64
+    - 0 <= r1 < 3
+    - 0 <= s1 < 3
+    renames: {output: T1, input: I1, weight: W1}

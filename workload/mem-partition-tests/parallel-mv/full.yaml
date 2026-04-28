@@ -1,0 +1,39 @@
+workload:
+
+  rank_sizes:
+    M: {{ M }}
+    N: {{ N }}
+    K: {{ K }}
+    X: {{ X }}
+    Y: {{ Y }}
+    Z: {{ Z }}
+  bits_per_value: {All: 8}
+
+  einsums:
+  - name: E0
+    tensor_accesses:
+    - {name: A, projection: [m, n]}
+    - {name: B, projection: [n, k]}
+    - {name: C, projection: [m, k], output: True}
+    renames: {input: A}
+
+  - name: E1
+    tensor_accesses:
+    - {name: D, projection: [x, y]}
+    - {name: E, projection: [y, z]}
+    - {name: F, projection: [x, z], output: True}
+    renames: {input: D}
+
+renames:
+  einsums:
+  - name: default
+    tensor_accesses:
+    - name: input
+      source: Inputs & Intermediates
+      expected_count: 1
+    - name: output
+      source: Outputs
+      expected_count: 1
+    - name: weight
+      source: ~(input | output)
+      expected_count: 1

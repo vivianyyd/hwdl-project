@@ -1,0 +1,37 @@
+renames:
+  einsums:
+  - name: default
+    tensor_accesses:
+    - name: input
+      source: Inputs & Intermediates
+      expected_count: 1
+    - name: output
+      source: Outputs
+      expected_count: 1
+    - name: weight
+      source: ~(input | output)
+      expected_count: 1
+
+workload:
+  bits_per_value: {All: 8}
+  rank_sizes: {N: 4}
+
+  einsums:
+  - einsum: "T0[p0, q0, n, m0] = I0[n, c0, H: p0 * 2 + r0, W: q0 * 2 + s0] * W0[r0, s0, c0, m0]"
+    iteration_space_shape:
+    - 0 <= p0 < 112
+    - 0 <= q0 < 112
+    - 0 <= c0 < 3
+    - 0 <= m0 < 64
+    - 0 <= r0 < 7
+    - 0 <= s0 < 7
+    renames: {output: T0, input: I0, weight: W0}
+  - einsum: "T1[p1, q1, n, m1] = I1[n, c1, H: p1 + r1, W: q1 + s1] * W1[r1, s1, c1, m1]"
+    iteration_space_shape:
+    - 0 <= p1 < 56
+    - 0 <= q1 < 56
+    - 0 <= c1 < 64
+    - 0 <= m1 < 64
+    - 0 <= r1 < 3
+    - 0 <= s1 < 3
+    renames: {output: T1, input: I1, weight: W1}

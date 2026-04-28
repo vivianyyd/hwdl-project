@@ -6,11 +6,18 @@ def trunc(s):
     return s.rsplit("/", 1)[-1].rsplit(".yaml", 1)[0]
 
 
-def af_map(arch, workload):
-    spec = af.Spec.from_yaml(
-        arch,
-        workload
-    )
+def af_map(arch, workload, jinja_parse_data=None):
+    if jinja_parse_data is not None:
+        spec = af.Spec.from_yaml(
+            arch,
+            workload,
+            jinja_parse_data=jinja_parse_data
+        )
+    else:
+        spec = af.Spec.from_yaml(
+            arch,
+            workload,
+        )
     spec.mapper.metrics = af.Metrics.LATENCY | af.Metrics.ENERGY 
     mapping = spec.map_workload_to_arch()
     return mapping
@@ -38,7 +45,7 @@ def process_mapping(arch, workload, mapping):
 
     mem_actions = {}
     for (op, mem, action), value in actions.items():
-        if action != "compute" and mem == "MainMemory":   # ignore compute entries
+        if action != "compute":   # ignore compute entries
             key = (op, mem)
             mem_actions[key] = mem_actions.get(key, 0.0) + value
     
@@ -139,7 +146,7 @@ def af_memoizable_grid(einsums: list[str], units: list[str], einsum_path, arch_p
     return best_grid_lats, best_grid_actions, best_grid_maps
 
 
-def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_path):
+def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_path, jinja_parse_data=None):
     """
     [einsum_path] and [arch_path] are functions which take an einsum 
     or arch name respectively, and return the path to the appropriate 
@@ -159,10 +166,17 @@ def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_
         for einsum in einsums:
             i += 1
             print("Getting cell", str(i), "of", str(len(einsums) * len(arch_pairings)), ":", einsum, sub_arch)
-            grid[(sub_arch, einsum)] = af_map(
-                arch_path + compute + "-" + "-".join(f"{s}-{n}" for s, n in mems) + ".yaml",
-                einsum_path(einsum)
-            )
+            if jinja_parse_data is not None:
+                grid[(sub_arch, einsum)] = af_map(
+                    arch_path + compute + "-" + "-".join(f"{s}-{n}" for s, n in mems) + ".yaml",
+                    einsum_path(einsum),
+                    jinja_parse_data
+                )
+            else:
+                grid[(sub_arch, einsum)] = af_map(
+                    arch_path + compute + "-" + "-".join(f"{s}-{n}" for s, n in mems) + ".yaml",
+                    einsum_path(einsum)
+                )
     # Accelforge might return multiple mappings. Pick the best one.
     best_grid_lats = {}
     best_grid_actions = {}
