@@ -13,7 +13,7 @@ from ruamel.yaml import YAML
 def _load_yaml(path: Path) -> tuple[YAML, dict]:
     yaml = YAML()
     yaml.preserve_quotes = True
-    yaml.indent(mapping=2, sequence=2, offset=2)
+    yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.width = 4096
     with path.open("r", encoding="utf-8") as handle:
         data = yaml.load(handle)

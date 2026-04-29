@@ -18,7 +18,7 @@ def af_map(arch, workload, jinja_parse_data=None):
             arch,
             workload,
         )
-    spec.mapper.metrics = af.Metrics.LATENCY | af.Metrics.ENERGY 
+    spec.mapper.metrics = af.Metrics.LATENCY # | af.Metrics.ENERGY 
     mapping = spec.map_workload_to_arch()
     return mapping
 

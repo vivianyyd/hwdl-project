@@ -22,6 +22,7 @@ def assign_time_bwu(
 
     if node.flag == Node.DONE:
         return
+
     if node.flag == Node.VISITED:
         raise ValueError("Cycle in graph")
 
@@ -50,6 +51,8 @@ def assign_time_bwu(
     done = False
     
     while not done:
+        # if memory_ops_remaining != total_mem_ops:
+        #     print("We are in a chunk smaller than the full Einsum!", chunked_bwu, node)
         if memory_ops_remaining == 0:  # if no memory ops, skip the loop
             chunk_end = chunk_start + latency
             done = True
@@ -59,13 +62,14 @@ def assign_time_bwu(
         avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
 
         if avail_bwu == 0:
+            print("If we had not considered bwu, we would have violated a constraint here!", curr_schedule)
             chunk_start = min([t['start'] for t in executing_tasks])
         else:
             actual_usage = min(desired_bwu, avail_bwu)
             
             # the latency if the available bandwidth remained constant for the full computation
             actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
-            actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
+            actual_latency = max(actual_mem_lat, (node.total_latency * (memory_ops_remaining / total_mem_ops)))
             chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
             
             chunked_bwu.append({
@@ -80,6 +84,7 @@ def assign_time_bwu(
             
             # set up for next chunk
             memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
+            latency = node.total_latency * (memory_ops_remaining / total_mem_ops)
             chunk_start = chunk_end
 
     node.total_latency = chunk_end - start

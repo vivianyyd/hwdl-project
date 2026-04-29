@@ -4,18 +4,18 @@ import matplotlib.pyplot as plt
 
 # -------- INPUT --------
 data_str = """
-{
-(E0, compute=fast, latency=0.0001841295452322811): 0, 
-(E2, compute=fast, latency=0.0001841295452322811): np.float32(0.00018412955), 
-(E1, compute=slow, latency=2.080000012938399e-05): 0, 
-(E3, compute=slow, latency=2.080000012938399e-05): np.float32(0.00018412955), 
-(E4, compute=slow, latency=2.080000012938399e-05): np.float32(0.0003682591)
-}
+{(EF, compute=fast, latency=0.0001841295452322811): 0,
+ (AB, compute=fast, latency=0.0001841295452322811): 0.0001841295452322811,
+ (CD, compute=slow, latency=0.0008597790728103675): 0,
+ (GH, compute=fast, latency=0.0001841295452322811): 0.0003682590904645622,
+ (EFGH, compute=fast, latency=0.0001841295452322811): 0.0005523886356968433,
+ (ABCD, compute=fast, latency=0.0001841295452322811): 0.0008597790728103675,
+ (OUT, compute=fast, latency=0.0001841295452322811): 0.0010439086180426486}
 """
 
 # -------- PARSE --------
 pattern = re.compile(
-    r"\((E\d+), compute=(\w+), latency=([0-9e\.\-]+)\): (.+?)(?:,|\n|\})"
+    r"\((\w+), compute=(\w+), latency=([0-9e\.\-]+)\): (.+?)(?:,|\n|\})"
 )
 
 events = []
@@ -83,4 +83,4 @@ ax.set_title("Generated Schedule")
 ax.invert_yaxis()
 
 plt.tight_layout()
-plt.savefig("milestone_2.png", dpi=300)
+plt.savefig("milestone_3.png", dpi=300)
