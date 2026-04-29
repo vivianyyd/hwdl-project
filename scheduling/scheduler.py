@@ -13,14 +13,15 @@ def assign_times(untimed_schedule: list[Node], memory_name, shared_memory_info) 
     """
     curr_schedule = {}
     clocks = {}
+    chunked_bwu = []
     for node in untimed_schedule:
         if not node.successors: # node is a leaf
             if shared_memory_info != None:
-                assign_time_shared_mem(node, memory_name, curr_schedule, clocks, [])
+                assign_time_shared_mem(node, memory_name, curr_schedule, clocks, chunked_bwu)
             if memory_name == None:
                 assign_time_naive(node, curr_schedule, clocks)
             else:
-                assign_time_bwu(node, memory_name, curr_schedule, clocks, [])
+                assign_time_bwu(node, memory_name, curr_schedule, clocks, chunked_bwu)
     return curr_schedule, max(clocks.values())
 
 

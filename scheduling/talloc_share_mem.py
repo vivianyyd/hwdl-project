@@ -59,7 +59,7 @@ def assign_time_shared_mem(
     
     while not (done or (bwu_ok and mem_cap_ok)):
         if memory_ops_remaining == 0:  # if no memory ops, skip the loop
-            chunk_end = chunk_start + latency
+            print("broke out of loop early!!")
             done = True
             break
         
@@ -73,14 +73,17 @@ def assign_time_shared_mem(
 
         mem_cap_ok = True
         mem_cap = {}
+        print("sched:", curr_schedule, used_capacities, executing_tasks, chunked_bwu, chunk_start, node, id(chunked_bwu))
         for mem, capacity in node_mem_max_capacity:
             if 100 - used_capacities.get(mem, 0) < capacity:
                 memory_ops_remaining = total_mem_ops
-                chunk_start = min([t['end'] for t in executing_tasks])
+                chunk_start = max(chunk_start, min([t['end'] for t in executing_tasks]))
+                start = chunk_start
                 mem_cap_ok = False
                 break
             mem_cap[mem] = capacity
         
+        print("mem cap ok:", mem_cap_ok)
         if not mem_cap_ok:
             continue
         
@@ -90,6 +93,7 @@ def assign_time_shared_mem(
             new_chunk_start = min([t['end'] for t in executing_tasks])
             assert(new_chunk_start > chunk_start)
             chunk_start = new_chunk_start
+            bwu_ok = False
             continue
         
         actual_usage = min(desired_bwu, avail_bwu)
@@ -97,12 +101,14 @@ def assign_time_shared_mem(
         # the latency if the available bandwidth remained constant for the full computation
         actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
         actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
+        
         chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
         
         if (actual_latency == chunk_end - chunk_start):
             bwu_ok = True
-        
-        ###### ..
+        else:
+            bwu_ok = False
+        print("bwu_ok:", bwu_ok)
         chunked_bwu.append({
             'einsum': node.einsum_name,
             'start': chunk_start,
@@ -120,5 +126,4 @@ def assign_time_shared_mem(
     curr_schedule[node] = start
     clocks[node.compute_assignment] = curr_schedule[node] + node.total_latency
     node.flag = Node.DONE
-    print(chunked_bwu)
-
+    
