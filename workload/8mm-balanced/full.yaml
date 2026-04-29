@@ -1,58 +1,64 @@
 workload:
   iteration_space_shape:
-    m:  0 <= m  < 128
-    n: 0 <= n < 128
+    v: 0 <= v < 128
+    w: 0 <= w < 128
+    x: 0 <= x < 128
+    y: 0 <= y < 128
+    z: 0 <= z < 128
     k: 0 <= k < 128
+    m: 0 <= m < 128
+    n: 0 <= n < 128
+    q: 0 <= q < 128
   bits_per_value: {All: 8}
 
   einsums:
   - name: AB
     tensor_accesses:
-    - {name: A, projection: [m, n]}
-    - {name: B, projection: [n, k]}
-    - {name: AB, projection: [m, k], output: True}
+    - {name: A, projection: [v, w]}
+    - {name: B, projection: [w, x]}
+    - {name: AB, projection: [v, x], output: True}
     renames: {input: A}
   
   - name: CD
     tensor_accesses:
-    - {name: C, projection: [m, n]}
-    - {name: D, projection: [n, k]}
-    - {name: CD, projection: [m, k], output: True}
+    - {name: C, projection: [x, y]}
+    - {name: D, projection: [y, z]}
+    - {name: CD, projection: [x, z], output: True}
     renames: {input: C}
   
   - name: EF
     tensor_accesses:
-    - {name: E, projection: [m, n]}
-    - {name: F, projection: [n, k]}
-    - {name: EF, projection: [m, k], output: True}
+    - {name: E, projection: [z, k]}
+    - {name: F, projection: [k, m]}
+    - {name: EF, projection: [z, m], output: True}
     renames: {input: E}
   
   - name: GH
     tensor_accesses:
     - {name: G, projection: [m, n]}
-    - {name: H, projection: [n, k]}
-    - {name: GH, projection: [m, k], output: True}
+    - {name: H, projection: [n, q]}
+    - {name: GH, projection: [m, q], output: True}
     renames: {input: G}
   
   - name: ABCD
     tensor_accesses:
-    - {name: AB, projection: [m, n]}
-    - {name: CD, projection: [n, k]}
-    - {name: ABCD, projection: [m, k], output: True}
+    - {name: AB, projection: [v, x]}
+    - {name: CD, projection: [x, z]}
+    - {name: ABCD, projection: [v, z], output: True}
     renames: {input: AB}
   
   - name: EFGH
     tensor_accesses:
-    - {name: EF, projection: [m, n]}
-    - {name: GH, projection: [n, k]}
-    - {name: EFGH, projection: [m, k], output: True}
+    - {name: EF, projection: [z, m]}
+    - {name: GH, projection: [m, q]}
+    - {name: EFGH, projection: [z, q], output: True}
     renames: {input: EF}
   
   - name: OUT
     tensor_accesses:
-    - {name: ABCD, projection: [m, n]}
-    - {name: EFGH, projection: [n, k]}
-    - {name: OUT, projection: [m, k], output: True}
+    - {name: ABCD, projection: [v, z]}
+    - {name: EFGH, projection: [z, q]}
+    - {name: OUT, projection: [v, q], output: True}
     renames: {input: ABCD}
 
 renames:

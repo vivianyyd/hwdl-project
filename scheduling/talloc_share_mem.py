@@ -100,8 +100,7 @@ def assign_time_shared_mem(
         
         # the latency if the available bandwidth remained constant for the full computation
         actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
-        actual_latency = max(actual_mem_lat, (latency * (memory_ops_remaining / total_mem_ops)))
-        
+        actual_latency = max(actual_mem_lat, (node.total_latency * (memory_ops_remaining / total_mem_ops)))
         chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
         
         if (actual_latency == chunk_end - chunk_start):
@@ -119,6 +118,7 @@ def assign_time_shared_mem(
         
         # set up for next chunk
         memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
+        latency = node.total_latency * (memory_ops_remaining / total_mem_ops)
         chunk_start = chunk_end
 
     node.total_latency = chunk_end - start

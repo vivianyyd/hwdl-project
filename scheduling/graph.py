@@ -70,6 +70,8 @@ def graph_setup(
                 node.dependencies.append(dep_node)
                 dep_node.successors.append(node)
 
+    # print("Data deps:", data_dependencies)
+    # print("Struct deps:", structural_dependencies)
     add_deps(data_dependencies)
     add_deps(structural_dependencies)
 
