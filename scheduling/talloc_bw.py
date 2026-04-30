@@ -63,7 +63,7 @@ def assign_time_bwu(
 
         if avail_bwu == 0:
             print("If we had not considered bwu, we would have violated a constraint here!", curr_schedule)
-            chunk_start = min([t['start'] for t in executing_tasks])
+            chunk_start = min([t['end'] for t in executing_tasks])
         else:
             actual_usage = min(desired_bwu, avail_bwu)
             
