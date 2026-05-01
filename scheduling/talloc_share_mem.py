@@ -58,7 +58,7 @@ def assign_time_shared_mem(
     node_mem_max_capacity = node.compute_assignment[1:]
     
     while not (done or (bwu_ok and mem_cap_ok)):
-        if memory_ops_remaining == 0:  # if no memory ops, skip the loop
+        if np.isclose(memory_ops_remaining, 0):  # if no memory ops, skip the loop
             print("broke out of loop early!!")
             chunk_end = chunk_start + latency_remaining
             done = True
@@ -90,7 +90,7 @@ def assign_time_shared_mem(
         
         # check memory bandwidth
         avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
-        if avail_bwu == 0:
+        if np.isclose(avail_bwu, 0):
             new_chunk_start = min([t['end'] for t in executing_tasks])
             assert(new_chunk_start > chunk_start)
             chunk_start = new_chunk_start
@@ -109,7 +109,7 @@ def assign_time_shared_mem(
             [t['start'] for t in chunked_bwu if t['start'] > chunk_start and t['start'] < chunk_start + actual_latency]
         )
         
-        if (actual_latency == chunk_end - chunk_start):
+        if (np.isclose(actual_latency, chunk_end - chunk_start)):
             bwu_ok = True
         else:
             bwu_ok = False

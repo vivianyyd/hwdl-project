@@ -53,7 +53,7 @@ def assign_time_bwu(
     while not done:
         # if memory_ops_remaining != total_mem_ops:
         #     print("We are in a chunk smaller than the full Einsum!", chunked_bwu, node)
-        if memory_ops_remaining == 0:  # if no memory ops, skip the loop
+        if np.isclose(memory_ops_remaining, 0):  # if no memory ops, skip the loop
             chunk_end = chunk_start + latency_remaining
             done = True
             break
@@ -61,7 +61,7 @@ def assign_time_bwu(
         executing_tasks = [t for t in chunked_bwu if t['start'] <= chunk_start and t['end'] > chunk_start]
         avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
 
-        if avail_bwu == 0:
+        if np.isclose(avail_bwu, 0):
             print("If we had not considered bwu, we would have violated a constraint here!", curr_schedule)
             chunk_start = max(chunk_start, min([t['end'] for t in executing_tasks]))
         else:
@@ -85,7 +85,7 @@ def assign_time_bwu(
                 'bwu': actual_usage,
             })
 
-            if (actual_latency == chunk_end - chunk_start):
+            if (np.isclose(actual_latency, chunk_end - chunk_start)):
                 done = True
             
             # set up for next chunk
