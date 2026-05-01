@@ -1,61 +1,66 @@
 workload:
   iteration_space_shape:
-    m:  0 <= m  < 128
-    n: 0 <= n < 128
-    k: 0 <= k < 128
+    a: 0 <= a < 128
+    b: 0 <= b < 128
+    c: 0 <= c < 128
+    d: 0 <= d < 128
+    e: 0 <= e < 128
+    f: 0 <= f < 128
+    g: 0 <= g < 128
+    h: 0 <= h < 128
   bits_per_value: {All: 8}
 
   einsums:
   # --- left side: a few matmuls ---
   - name: AB
     tensor_accesses:
-    - {name: A, projection: [m, n]}
-    - {name: B, projection: [n, k]}
-    - {name: AB, projection: [m, k], output: True}
+    - {name: A, projection: [a, b]}
+    - {name: B, projection: [b, c]}
+    - {name: AB, projection: [a, c], output: True}
     renames: {input: A}
-  
+
   - name: ABC
     tensor_accesses:
-    - {name: AB, projection: [m, n]}
-    - {name: C, projection: [n, k]}
-    - {name: ABC, projection: [m, k], output: True}
+    - {name: AB, projection: [a, c]}
+    - {name: C, projection: [c, d]}
+    - {name: ABC, projection: [a, d], output: True}
     renames: {input: AB}
-  
+
   - name: ABCD
     tensor_accesses:
-    - {name: ABC, projection: [m, n]}
-    - {name: D, projection: [n, k]}
-    - {name: ABCD, projection: [m, k], output: True}
+    - {name: ABC, projection: [a, d]}
+    - {name: D, projection: [d, e]}
+    - {name: ABCD, projection: [a, e], output: True}
     renames: {input: ABC}
-  
+
   # --- right side: a few matvecs ---
   - name: Y0
     tensor_accesses:
-    - {name: E0, projection: [m, n]}
-    - {name: X0, projection: [n]}
-    - {name: Y0, projection: [m], output: True}
+    - {name: E0, projection: [f, g]}
+    - {name: X0, projection: [g]}
+    - {name: Y0, projection: [f], output: True}
     renames: {input: E0}
-  
+
   - name: Y1
     tensor_accesses:
-    - {name: E1, projection: [m, n]}
-    - {name: Y0, projection: [n]}
-    - {name: Y1, projection: [m], output: True}
+    - {name: E1, projection: [h, f]}
+    - {name: Y0, projection: [f]}
+    - {name: Y1, projection: [h], output: True}
     renames: {input: E1}
-  
+
   - name: Y2
     tensor_accesses:
-    - {name: E2, projection: [m, n]}
-    - {name: Y1, projection: [n]}
-    - {name: Y2, projection: [m], output: True}
+    - {name: E2, projection: [e, h]}
+    - {name: Y1, projection: [h]}
+    - {name: Y2, projection: [e], output: True}
     renames: {input: E2}
-  
+
   # --- join at the end: matmul (ABCD) * (Y2) ---
   - name: OUT
     tensor_accesses:
-    - {name: ABCD, projection: [m, n]}
-    - {name: Y2, projection: [n]}
-    - {name: OUT, projection: [m], output: True}
+    - {name: ABCD, projection: [a, e]}
+    - {name: Y2, projection: [e]}
+    - {name: OUT, projection: [a], output: True}
     renames: {input: ABCD}
 
 renames:
