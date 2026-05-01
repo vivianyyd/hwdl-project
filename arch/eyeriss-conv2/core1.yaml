@@ -13,7 +13,7 @@ arch:
   - !Memory
     name: GlobalBuffer
     component_class: SmartBufferSRAM
-    size: 0.75 * 1024 * 384 * 8 # 1Mb))
+    size: 1024*1024*1024
     # 32 reads and writes per cycle, 200MHz. Note that the bits per read/write is the
     # bits per action set below. This is optional, and if it is omitted, then the total
     # latency is the sum of the latencies of all actions, and action latency is taken
@@ -26,14 +26,13 @@ arch:
     tensors: {keep: ~MainMemory, may_keep: All}
 
   - !Container
-    name: PE2
+    name: PE1
     spatial:
     - {name: reuse_weight, fanout: 14, may_reuse: weight, reuse: weight, min_usage: 1}
     - {name: reuse_output, fanout: 12, may_reuse: output, reuse: output, min_usage: 1}
 
   - !Compute # MAC unit
-    name: MAC2
+    name: MAC1
     component_class: IntMAC
     total_latency: compute_actions / 200e6
     extra_attributes_for_component_model: {multiplier_width: 8, adder_width: 16}
-

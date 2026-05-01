@@ -1,0 +1,28 @@
+renames:
+  einsums:
+  - name: default
+    tensor_accesses:
+    - name: input
+      source: Inputs & Intermediates
+      expected_count: 1
+    - name: output
+      source: Outputs
+      expected_count: 1
+    - name: weight
+      source: ~(input | output)
+      expected_count: 1
+
+workload:
+  bits_per_value: {All: 8}
+  rank_sizes: 
+      P: {{ P }} # 56
+      Q: {{ Q }} # 56
+      M: {{ M }} # 64
+      C: {{ C }} # 64
+      R: {{ R }} # 3
+      S: {{ S }} # 3
+      N: {{ N }} 
+
+  einsums:
+  - einsum: "T0[p, q, n, m] = I0[n, c, H: p * 2 + r, W: q * 2 + s] * W0[r, s, c, m]"
+    renames: {output: T0, input: I0, weight: W0}

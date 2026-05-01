@@ -1,0 +1,28 @@
+renames:
+  einsums:
+  - name: default
+    tensor_accesses:
+    - name: input
+      source: Inputs & Intermediates
+      expected_count: 1
+    - name: output
+      source: Outputs
+      expected_count: 1
+    - name: weight
+      source: ~(input | output)
+      expected_count: 1
+
+workload:
+  bits_per_value: {All: 8}
+  rank_sizes: 
+      N: {{ N }}
+      Y: {{ Y }} # 56
+      X: {{ X }} # 56
+      Z: {{ Z }} # 64
+      U: {{ U }} # 64
+      V: {{ V }} # 3
+      W: {{ W }} # 3
+
+  einsums:
+  - einsum: "T1[x, y, n, z] = I1[n, u, H: x * 2 + v, W: y * 2 + w] * W1[v, w, u, z]"
+    renames: {output: T1, input: I1, weight: W1}
