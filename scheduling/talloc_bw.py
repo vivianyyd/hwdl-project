@@ -1,4 +1,5 @@
 from scheduling.graph import Node
+import numpy as np
 
 
 def assign_time_bwu(

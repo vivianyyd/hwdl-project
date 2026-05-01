@@ -1,4 +1,5 @@
 from scheduling.graph import Node
+import numpy as np
 
 
 def assign_time_shared_mem(
@@ -40,6 +41,10 @@ def assign_time_shared_mem(
         (curr_schedule[dep] + dep.total_latency for dep in node.dependencies),
         default=0
     )
+    # print('Scheduling', node)
+    # print('Dependencies', node.dependencies)
+    # print('Schedule so far', curr_schedule)
+    # print('Want to start', start)
 
     # info for this full einsum
     latency_remaining = node.total_latency
@@ -58,6 +63,9 @@ def assign_time_shared_mem(
     node_mem_max_capacity = node.compute_assignment[1:]
     
     while not (done or (bwu_ok and mem_cap_ok)):
+        # print('Chunks', chunked_bwu)
+        # print('Start now', start)
+        # print('Chunk start now', chunk_start)
         if np.isclose(memory_ops_remaining, 0):  # if no memory ops, skip the loop
             print("broke out of loop early!!")
             chunk_end = chunk_start + latency_remaining
@@ -74,7 +82,7 @@ def assign_time_shared_mem(
 
         mem_cap_ok = True
         mem_cap = {}
-        print("sched:", curr_schedule, used_capacities, executing_tasks, chunked_bwu, chunk_start, node, id(chunked_bwu))
+        # print("sched:", curr_schedule, used_capacities, executing_tasks, chunked_bwu, chunk_start, node, id(chunked_bwu))
         for mem, capacity in node_mem_max_capacity:
             if 100 - used_capacities.get(mem, 0) < capacity:
                 memory_ops_remaining = total_mem_ops

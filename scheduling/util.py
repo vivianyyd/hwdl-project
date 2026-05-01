@@ -144,11 +144,19 @@ def untimed_schedules(
     # same compute unit, or the empty list if it is the first to execute on that compute 
     # unit. Then perform a topological sort of this restricted dependency graph to generate
     # an order in which Einsums are to be computed on each component.
+
+    def matches(value, target):
+        if isinstance(value, str):
+            return value == target
+        if isinstance(value, tuple):
+            return any(isinstance(v, str) and v == target for v in value)
+        return False
+
     compute_unit_schedules = {}
     for compute in compute_units:
         restricted_deps = restricted_dependencies(
             data_dependencies, 
-            [e for e, c in compute_assignment.items() if c == compute]
+            [e for e, c_assignment in compute_assignment.items() if matches(c_assignment, compute)]
         )
         toposorts = all_topological_sorts(restricted_deps)
 
