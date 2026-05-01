@@ -72,7 +72,11 @@ def assign_time_bwu(
             actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
             actual_latency = max(actual_mem_lat, latency_remaining)
             # lat_remaining = (node.total_latency * (memory_ops_remaining / total_mem_ops))
-            chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
+            chunk_end = min(
+                [chunk_start + actual_latency] + 
+                [t['end'] for t in executing_tasks] + 
+                [t['start'] for t in chunked_bwu if t['start'] > chunk_start and t['start'] < chunk_start + actual_latency]
+            )
 
             chunked_bwu.append({
                 'einsum': node.einsum_name,
