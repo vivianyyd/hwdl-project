@@ -49,7 +49,6 @@ def best_schedule(
     for compute_assignment in placements(einsums, architecture_pairings):
         for structural_dependencies in untimed_schedules(compute_assignment, data_dependencies, compute_units):
             # print("A new untimed schedule")
-            
             nodes = graph_setup(
                 data_dependencies,
                 structural_dependencies,
@@ -58,8 +57,7 @@ def best_schedule(
                 total_latency_grid,
                 actions_grid,
             )
-            # print(nodes)
-            # print()
+            print(nodes)
             # print()
             try:
                 schedule, latency = assign_times(nodes.values(), memory_name, shared_memory_info)
@@ -70,6 +68,7 @@ def best_schedule(
             #  think about this a lil later
             except ValueError as e:
                 print(f"Error: {e}")
+
             
             
 

@@ -8,6 +8,7 @@ arch:
     name: MainMemory
     component_class: LPDDR4
     size: inf
+    total_latency: (read_actions + write_actions) / 32 / 200e6
     tensors: {keep: ~Intermediates, may_keep: All}
 
   - !Memory

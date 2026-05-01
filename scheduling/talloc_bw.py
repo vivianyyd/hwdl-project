@@ -37,12 +37,13 @@ def assign_time_bwu(
         (curr_schedule[dep] + dep.total_latency for dep in node.dependencies),
         default=0
     )
+    print(start)
 
     # info for this full einsum
     latency_remaining = node.total_latency
     memory_latency = node.latencies_per_unit[memory_name]
     desired_bwu = memory_latency / node.total_latency
-    
+
     total_mem_ops = sum(count for (memory, op), count in node.actions.items() if memory == memory_name)
     lat_per_mem_op = memory_latency / total_mem_ops
     memory_ops_remaining = total_mem_ops
@@ -61,6 +62,8 @@ def assign_time_bwu(
         
         executing_tasks = [t for t in chunked_bwu if t['start'] <= chunk_start and t['end'] > chunk_start]
         avail_bwu = 1 - sum(t['bwu'] for t in executing_tasks)
+        print("Executing:", executing_tasks)
+        print("available:", avail_bwu)
 
         if np.isclose(avail_bwu, 0):
             print("If we had not considered bwu, we would have violated a constraint here!", curr_schedule)
@@ -69,7 +72,6 @@ def assign_time_bwu(
             actual_usage = min(desired_bwu, avail_bwu)
             
             # the latency if the available bandwidth remained constant for the full computation
-
             actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
             actual_latency = max(actual_mem_lat, latency_remaining)
             # lat_remaining = (node.total_latency * (memory_ops_remaining / total_mem_ops))
@@ -92,11 +94,11 @@ def assign_time_bwu(
             # set up for next chunk
             memory_ops_remaining = memory_ops_remaining - ((actual_usage/desired_bwu) * (total_mem_ops / node.total_latency) * (chunk_end - chunk_start))
             latency_remaining = node.total_latency * (memory_ops_remaining / total_mem_ops)
-
             chunk_start = chunk_end
 
     node.total_latency = chunk_end - start
-
+    print("Start time of", node, ":", start)
+    
     curr_schedule[node] = start
     clocks[node.compute_assignment] = curr_schedule[node] + node.total_latency
     node.flag = Node.DONE

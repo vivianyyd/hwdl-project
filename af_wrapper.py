@@ -18,7 +18,7 @@ def af_map(arch, workload, jinja_parse_data=None):
             arch,
             workload,
         )
-    spec.mapper.metrics = af.Metrics.LATENCY # | af.Metrics.ENERGY 
+    spec.mapper.metrics = af.Metrics.LATENCY | af.Metrics.ENERGY 
     mapping = spec.map_workload_to_arch()
     return mapping
 
@@ -86,6 +86,8 @@ def af_grid(einsums: list[str], units: list[str], einsum_path, arch_path):
         for i in range(len(m)):
             if m[i].latency() < best.latency():
                 best = m[i]
+                if just_one: 
+                    break
 
         best_grid_lats[cell] = best.latency()
     
@@ -109,7 +111,7 @@ def af_grid(einsums: list[str], units: list[str], einsum_path, arch_path):
     return best_grid_lats, best_grid_mems, best_grid_maps
 
 
-def af_memoizable_grid(einsums: list[str], units: list[str], einsum_path, arch_path):
+def af_memoizable_grid(einsums: list[str], units: list[str], einsum_path, arch_path, just_one = False):
     """
     [einsum_path] and [arch_path] are functions which take an einsum 
     or arch name respectively, and return the path to the appropriate 
@@ -129,6 +131,8 @@ def af_memoizable_grid(einsums: list[str], units: list[str], einsum_path, arch_p
                 arch_path(sub_arch),
                 einsum_path(einsum)
             )
+            if just_one:
+                break
     # Accelforge might return multiple mappings. Pick the best one.
     best_grid_lats = {}
     best_grid_actions = {}
