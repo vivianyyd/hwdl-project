@@ -102,6 +102,9 @@ def assign_time_bwu(
     curr_schedule[node] = start
     clocks[node.compute_assignment] = curr_schedule[node] + node.total_latency
     node.flag = Node.DONE
+    print("Chunks:")
+    print(chunked_bwu)
+    print()
     if log(curr_schedule):
         print(node, '\t', chunked_bwu)
 

@@ -58,6 +58,7 @@ def best_schedule(
                 actions_grid,
             )
             print(nodes)
+
             # print()
             try:
                 schedule, latency = assign_times(nodes.values(), memory_name, shared_memory_info)

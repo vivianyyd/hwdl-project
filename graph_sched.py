@@ -4,23 +4,21 @@ import matplotlib.pyplot as plt
 
 # -------- INPUT --------
 data_str = """
-{(EF, compute=fast, latency=0.0001841295452322811): 0,
- (AB, compute=fast, latency=0.0001841295452322811): 0.0001841295452322811,
- (CD, compute=slow, latency=0.0008597790728103675): 0,
- (GH, compute=fast, latency=0.0001841295452322811): 0.0003682590904645622,
- (EFGH, compute=fast, latency=0.0001841295452322811): 0.0005523886356968433,
- (ABCD, compute=fast, latency=0.0001841295452322811): 0.0008597790728103675,
- (OUT, compute=fast, latency=0.0001841295452322811): 0.0010439086180426486}
+{(M1\nBW utilization: 62.9%, compute=core1, latency=0.012517933): 0,
+ (M2 chunk 1\nBW utilization: 37.1%, compute=core2, latency=0.012517933): 0,
+ (M2 chunk 2\nBW utilization: 62.9%, compute=core2, latency=0.005123567878727586): 0.012517933}
 """
 
 # -------- PARSE --------
 pattern = re.compile(
-    r"\((\w+), compute=(\w+), latency=([0-9e\.\-]+)\): (.+?)(?:,|\n|\})"
+    r"\((.*?), compute=(\w+), latency=([0-9e\.\-]+)\): (.+?)(?:,|\n|\})",
+    re.DOTALL
 )
 
 events = []
 
 for match in pattern.findall(data_str):
+    print("hi")
     eid, compute, latency, start = match
 
     latency = float(latency)
@@ -39,17 +37,19 @@ for match in pattern.findall(data_str):
         "end": end * 1000
     })
 
+print(events)
+
 # -------- PLOT --------
 fig, ax = plt.subplots(figsize=(6, 8))
 
-unit_index = {"fast": 0, "slow": 1}
+unit_index = {"core1": 0, "core2": 1}
 
 for e in events:
     x = unit_index[e["compute"]]
     y = e["start"]
     height = e["end"] - e["start"]
 
-    color = "red" if e["compute"] == "fast" else "blue"
+    color = "red" if e["compute"] == "core2" else "blue"
 
     # Draw block
     rect = ax.bar(
@@ -75,7 +75,7 @@ for e in events:
 
 # -------- FORMATTING --------
 ax.set_xticks([0, 1])
-ax.set_xticklabels(["fast", "slow"])
+ax.set_xticklabels(["core1", "core2"])
 ax.set_ylabel("Time (ms)")
 ax.set_title("Generated Schedule")
 
