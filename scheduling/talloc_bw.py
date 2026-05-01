@@ -38,9 +38,9 @@ def assign_time_bwu(
     )
 
     # info for this full einsum
-    latency = node.total_latency
+    latency_remaining = node.total_latency
     memory_latency = node.latencies_per_unit[memory_name]
-    desired_bwu = memory_latency / latency
+    desired_bwu = memory_latency / node.total_latency
     
     total_mem_ops = sum(count for (memory, op), count in node.actions.items() if memory == memory_name)
     lat_per_mem_op = memory_latency / total_mem_ops
@@ -54,7 +54,7 @@ def assign_time_bwu(
         # if memory_ops_remaining != total_mem_ops:
         #     print("We are in a chunk smaller than the full Einsum!", chunked_bwu, node)
         if memory_ops_remaining == 0:  # if no memory ops, skip the loop
-            chunk_end = chunk_start + latency
+            chunk_end = chunk_start + latency_remaining
             done = True
             break
         
@@ -63,15 +63,17 @@ def assign_time_bwu(
 
         if avail_bwu == 0:
             print("If we had not considered bwu, we would have violated a constraint here!", curr_schedule)
-            chunk_start = min([t['end'] for t in executing_tasks])
+            chunk_start = max(chunk_start, min([t['end'] for t in executing_tasks]))
         else:
             actual_usage = min(desired_bwu, avail_bwu)
             
             # the latency if the available bandwidth remained constant for the full computation
+
             actual_mem_lat = (desired_bwu / actual_usage) * (memory_ops_remaining * lat_per_mem_op)
-            actual_latency = max(actual_mem_lat, (node.total_latency * (memory_ops_remaining / total_mem_ops)))
+            actual_latency = max(actual_mem_lat, latency_remaining)
+            # lat_remaining = (node.total_latency * (memory_ops_remaining / total_mem_ops))
             chunk_end = min([t['end'] for t in executing_tasks] + [chunk_start + actual_latency])
-            
+
             chunked_bwu.append({
                 'einsum': node.einsum_name,
                 'start': chunk_start,
@@ -83,8 +85,9 @@ def assign_time_bwu(
                 done = True
             
             # set up for next chunk
-            memory_ops_remaining = memory_ops_remaining - actual_usage * (chunk_end - chunk_start)
-            latency = node.total_latency * (memory_ops_remaining / total_mem_ops)
+            memory_ops_remaining = memory_ops_remaining - ((actual_usage/desired_bwu) * (total_mem_ops / node.total_latency) * (chunk_end - chunk_start))
+            latency_remaining = node.total_latency * (memory_ops_remaining / total_mem_ops)
+
             chunk_start = chunk_end
 
     node.total_latency = chunk_end - start
