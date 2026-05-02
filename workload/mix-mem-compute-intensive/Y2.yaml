@@ -7,22 +7,22 @@ workload:
 
   einsums:
   # --- left side: a few matmuls ---
-    - name: Y2
+  - name: Y2
     tensor_accesses:
-      - {name: E2, projection: [m, n]}
-      - {name: Y1, projection: [n]}
-      - {name: Y2, projection: [m], output: true}
+    - {name: E2, projection: [m, n]}
+    - {name: Y1, projection: [n]}
+    - {name: Y2, projection: [m], output: true}
     renames: {input: E2}
 renames:
   einsums:
-    - name: default
+  - name: default
     tensor_accesses:
-      - name: input
+    - name: input
       source: Inputs & Intermediates
       expected_count: 1
-      - name: output
+    - name: output
       source: Outputs
       expected_count: 1
-      - name: weight
+    - name: weight
       source: ~(input | output)
       expected_count: 1
