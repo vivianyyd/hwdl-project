@@ -1,12 +1,10 @@
 data_dependencies = {
     # chain 1
-    "Y0": [],
-    "Y1": ["Y0"],
+    "Y1": [],
     "Y2": ["Y1"],
 
     # chain 2
-    "Z0": [],
-    "Z1": ["Z0"],
+    "Z1": [],
     "Z2": ["Z1"],
 
     # fan-in (elementwise add)

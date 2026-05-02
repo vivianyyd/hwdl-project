@@ -2,8 +2,6 @@ data_dependencies = {
     "AB": [],
     "CD": [],
     "EF": [],
-    "GH": [],
     "ABCD": ["AB", "CD"],
-    "EFGH": ["EF", "GH"],
-    "OUT": ["ABCD", "EFGH"],
+    "OUT": ["ABCD", "EF"],
 }

@@ -8,10 +8,10 @@ workload:
     f: 0 <= f < 128
     g: 0 <= g < 128
     h: 0 <= h < 128
+    i: 0 <= i < 128
   bits_per_value: {All: 8}
 
   einsums:
-  # --- left side: a few matmuls ---
   - name: AB
     tensor_accesses:
     - {name: A, projection: [a, b]}
@@ -26,42 +26,26 @@ workload:
     - {name: ABC, projection: [a, d], output: True}
     renames: {input: AB}
 
-  - name: ABCD
+  - name: EF
     tensor_accesses:
-    - {name: ABC, projection: [a, d]}
-    - {name: D, projection: [d, e]}
-    - {name: ABCD, projection: [a, e], output: True}
-    renames: {input: ABC}
+    - {name: E, projection: [d, f]}
+    - {name: F, projection: [f, g]}
+    - {name: EF, projection: [d, g], output: True}
+    renames: {input: E}
 
-  # --- right side: a few matvecs ---
-  - name: Y0
+  - name: EFG
     tensor_accesses:
-    - {name: E0, projection: [f, g]}
-    - {name: X0, projection: [g]}
-    - {name: Y0, projection: [f], output: True}
-    renames: {input: E0}
+    - {name: EF, projection: [d, g]}
+    - {name: G, projection: [g, h]}
+    - {name: EFG, projection: [d, h], output: True}
+    renames: {input: EF}
 
-  - name: Y1
-    tensor_accesses:
-    - {name: E1, projection: [h, f]}
-    - {name: Y0, projection: [f]}
-    - {name: Y1, projection: [h], output: True}
-    renames: {input: E1}
-
-  - name: Y2
-    tensor_accesses:
-    - {name: E2, projection: [e, h]}
-    - {name: Y1, projection: [h]}
-    - {name: Y2, projection: [e], output: True}
-    renames: {input: E2}
-
-  # --- join at the end: matmul (ABCD) * (Y2) ---
   - name: OUT
     tensor_accesses:
-    - {name: ABCD, projection: [a, e]}
-    - {name: Y2, projection: [e]}
-    - {name: OUT, projection: [a], output: True}
-    renames: {input: ABCD}
+    - {name: ABC, projection: [a, d]}
+    - {name: EFG, projection: [d, h]}
+    - {name: OUT, projection: [a, h], output: True}
+    renames: {input: ABC}
 
 renames:
   einsums:

@@ -7,21 +7,21 @@ workload:
 
   einsums:
     - name: Y0
-    tensor_accesses:
+      tensor_accesses:
       - {name: A0, projection: [m, n]}
       - {name: X0, projection: [n]}
       - {name: Y0, projection: [m], output: true}
-    renames: {input: A0}
+      renames: {input: A0}
 renames:
   einsums:
     - name: default
-    tensor_accesses:
+      tensor_accesses:
       - name: input
-      source: Inputs & Intermediates
-      expected_count: 1
+        source: Inputs & Intermediates
+        expected_count: 1
       - name: output
-      source: Outputs
-      expected_count: 1
+        source: Outputs
+        expected_count: 1
       - name: weight
-      source: ~(input | output)
-      expected_count: 1
+        source: ~(input | output)
+        expected_count: 1
