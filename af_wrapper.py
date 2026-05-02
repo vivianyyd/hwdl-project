@@ -86,8 +86,8 @@ def af_grid(einsums: list[str], units: list[str], einsum_path, arch_path):
         for i in range(len(m)):
             if m[i].latency() < best.latency():
                 best = m[i]
-                if just_one: 
-                    break
+        if just_one: 
+            break
 
         best_grid_lats[cell] = best.latency()
     
@@ -184,7 +184,6 @@ def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_
     # Accelforge might return multiple mappings. Pick the best one.
     best_grid_lats = {}
     best_grid_actions = {}
-    best_grid_maps = {}
     for cell, m in grid.items():
         best = m[0]
         for i in range(len(m)):
@@ -193,6 +192,5 @@ def af_memoizable_grid_mem(einsums: list[str], arch_pairings, einsum_path, arch_
 
         best_grid_lats[cell] = best.latency(per_component=True)
         best_grid_actions[cell] = best.actions(per_component=True)
-        best_grid_maps[cell] = best
     
-    return best_grid_lats, best_grid_actions, best_grid_maps
+    return best_grid_lats, best_grid_actions

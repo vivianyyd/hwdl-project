@@ -32,6 +32,24 @@ arch:
     - {name: reuse_weight, fanout: 14, may_reuse: weight, reuse: weight, min_usage: 1}
     - {name: reuse_output, fanout: 12, may_reuse: output, reuse: output, min_usage: 1}
 
+  - !Memory # Input scratchpad
+    name: InputScratchpad2
+    component_class: SmartBufferSRAM
+    size: 12 * 16 # 12 16b entries
+    tensors: {keep: input}
+
+  - !Memory # Weight scratchpad
+    name: WeightScratchpad2
+    component_class: SmartBufferSRAM
+    size: 192 * 16 # 12 16b entries
+    tensors: {keep: weight}
+
+  - !Memory # Output scratchpad
+    name: OutputScratchpad2
+    component_class: SmartBufferSRAM
+    size: 16 * 16 # 16 16b entries
+    tensors: {keep: output}
+
   - !Compute # MAC unit
     name: MAC2
     component_class: IntMAC

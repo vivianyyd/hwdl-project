@@ -67,7 +67,7 @@ def assign_time_shared_mem(
         # print('Start now', start)
         # print('Chunk start now', chunk_start)
         if np.isclose(memory_ops_remaining, 0):  # if no memory ops, skip the loop
-            print("broke out of loop early!!")
+            # print("broke out of loop early!!")
             chunk_end = chunk_start + latency_remaining
             done = True
             break
@@ -92,7 +92,7 @@ def assign_time_shared_mem(
                 break
             mem_cap[mem] = capacity
 
-        print("mem cap ok:", mem_cap_ok)
+        # print("mem cap ok:", mem_cap_ok)
         if not mem_cap_ok:
             continue
         
@@ -121,7 +121,7 @@ def assign_time_shared_mem(
             bwu_ok = True
         else:
             bwu_ok = False
-        print("bwu_ok:", bwu_ok)
+        # print("bwu_ok:", bwu_ok)
         chunked_bwu.append({
             'einsum': node.einsum_name,
             'start': chunk_start,

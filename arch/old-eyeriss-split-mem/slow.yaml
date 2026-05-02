@@ -53,5 +53,5 @@ arch:
   - !Compute # MAC unit
     name: SlowMAC
     component_class: IntMAC
-    total_latency: compute_actions / (200e6 / 3)
+    total_latency: compute_actions / (200e6)
     extra_attributes_for_component_model: {multiplier_width: 8, adder_width: 16}

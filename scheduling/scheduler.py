@@ -45,10 +45,27 @@ def best_schedule(
     min_latency = float('inf')
 
     architecture_pairings = generate_architecture_pairings(compute_units, shared_memory_info)
-    
+
+    lowest_lat_sum = float('inf') # for pruning
+
+    num_placements = len(architecture_pairings) ** len(einsums)
+    pi = 0
     for compute_assignment in placements(einsums, architecture_pairings):
-        for structural_dependencies in untimed_schedules(compute_assignment, data_dependencies, compute_units):
-            # print("A new untimed schedule")
+        print('Assignment', pi, 'of', num_placements)
+        pi += 1
+        # pruning
+        worst_case_lat = sum(
+            max(latency_per_component_grid[(compute_type, name)].values()) 
+            for name, compute_type in compute_assignment.items()
+        )
+        if worst_case_lat > lowest_lat_sum:
+            continue
+        else:
+            lowest_lat_sum = worst_case_lat
+
+        u = untimed_schedules(compute_assignment, data_dependencies, compute_units)
+        # print(len(u), 'schedules')
+        for structural_dependencies in u:
             nodes = graph_setup(
                 data_dependencies,
                 structural_dependencies,
@@ -57,9 +74,7 @@ def best_schedule(
                 total_latency_grid,
                 actions_grid,
             )
-            print(nodes)
 
-            # print()
             try:
                 schedule, latency = assign_times(nodes.values(), memory_name, shared_memory_info)
                 if latency < min_latency:
@@ -68,7 +83,8 @@ def best_schedule(
             # we can get a cycle in the graph from a bad topological sort...
             #  think about this a lil later
             except ValueError as e:
-                print(f"Error: {e}")
+                pass
+                # print(f"Error: {e}")
 
             
             

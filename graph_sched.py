@@ -4,10 +4,18 @@ import matplotlib.pyplot as plt
 
 # -------- INPUT --------
 data_str = """
-{(M1\nBW utilization: 62.9%, compute=core1, latency=0.012517933): 0,
- (M2 chunk 1\nBW utilization: 37.1%, compute=core2, latency=0.012517933): 0,
- (M2 chunk 2\nBW utilization: 62.9%, compute=core2, latency=0.005123567878727586): 0.012517933}
+{(AB, compute=fast, latency=0.0001841295452322811): 0, 
+(CD, compute=fast, latency=0.0001841295452322811): np.float32(0.00018412955), 
+(ABCD, compute=fast, latency=0.00018412951612845063): np.float32(0.0003682591), 
+(EF, compute=slow, latency=0.0004915199824608862): 0, 
+(OUT, compute=fast, latency=0.00018412957433611155): np.float32(0.0005523886)}
 """
+
+# data_str = """
+# {(M1\nBW utilization: 62.9%, compute=core1, latency=0.012517933): 0,
+#  (M2 chunk 1\nBW utilization: 37.1%, compute=core2, latency=0.012517933): 0,
+#  (M2 chunk 2\nBW utilization: 62.9%, compute=core2, latency=0.005123567878727586): 0.012517933}
+# """
 
 # -------- PARSE --------
 pattern = re.compile(
@@ -42,14 +50,14 @@ print(events)
 # -------- PLOT --------
 fig, ax = plt.subplots(figsize=(6, 8))
 
-unit_index = {"core1": 0, "core2": 1}
+unit_index = {"fast": 0, "slow": 1}
 
 for e in events:
     x = unit_index[e["compute"]]
     y = e["start"]
     height = e["end"] - e["start"]
 
-    color = "red" if e["compute"] == "core2" else "blue"
+    color = "red" if e["compute"] == "fast" else "blue"
 
     # Draw block
     rect = ax.bar(
@@ -75,7 +83,7 @@ for e in events:
 
 # -------- FORMATTING --------
 ax.set_xticks([0, 1])
-ax.set_xticklabels(["core1", "core2"])
+ax.set_xticklabels(["fast", "slow"])
 ax.set_ylabel("Time (ms)")
 ax.set_title("Generated Schedule")
 
